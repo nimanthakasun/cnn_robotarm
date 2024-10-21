@@ -11,9 +11,7 @@ def crop_by_pixels(source_frame, h1, h2, w1, w2):
     Returns:
     - frames (np.array): Array of extracted frames.
     """
-
-
-    return False
+    return source_frame[h1:h2, w1:w2]
 
 def crop_by_percentage(source_frame):
     """

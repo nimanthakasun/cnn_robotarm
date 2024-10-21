@@ -1,14 +1,13 @@
-from preprocessor import FrameExtracter, BackgroundRemover
+from preprocessor import FrameExtracter, BackgroundRemover,CropandResize
 import os
 import cv2
 
 COLOR = True
 
 if __name__ == '__main__':
-    folder_path= 'C:/Users/kasun/Downloads/Compressed/S1/Image_Data'
-    bckg_folder_path = 'C:/Users/kasun/Downloads/Compressed/Background'
+    folder_path= '../HumanEva/S1/Image_Data'
+    bckg_folder_path = '../HumanEva/Background'
     cur_path = os.getcwd()
-    #relative_path = '../../../../Downloads/Compressed/S1/Image_Data/Box_1_(BW1).avi'
 
     if COLOR:
         #Color Video
