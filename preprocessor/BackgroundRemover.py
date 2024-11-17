@@ -15,7 +15,7 @@ def remove_background(scene_frame, background_frame):
     gs_bckg = grayscale_converter(background_frame)
 
     inv_mask = create_invmask(gs_scene, gs_bckg)
-    cv2.imshow('Mask',inv_mask)
+    #cv2.imshow('Mask',inv_mask)
     return cv2.bitwise_and(scene_frame, scene_frame, mask = inv_mask)
 
 def grayscale_converter(source_frame):
@@ -42,7 +42,7 @@ def create_invmask(source_frame, background_frame):
         - processed_frame (np.array):Background removed frame.
     """
     difference = cv2.absdiff(source_frame, background_frame)
-    cv2.imshow('Absolute Diff', difference)
+    #cv2.imshow('Absolute Diff', difference)
     _, thresh = cv2.threshold(difference, 8, 255, cv2.THRESH_BINARY)
     #return cv2.bitwise_not(thresh)
     return thresh
