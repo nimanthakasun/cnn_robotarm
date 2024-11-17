@@ -7,7 +7,7 @@
 3. Conda Installation or
 4. Just Conda would be fine
 5. Dataset (I used HumanEva I dataset)
-5Python Packages (I used most recent stable versions at the time)
+6. Python Packages (I used most recent stable versions at the time)
    1. OpenCV
    2. Numpy
    3. Tensorflow-CPU (If you are using GPU version you might need to change the code)
