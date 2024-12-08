@@ -1,5 +1,4 @@
 from scipy.io import whosmat
-#from tensorflow.tools.docs.doc_controls import header
 
 from preprocessor import FrameExtracter, BackgroundRemover,CropandResize
 import os
@@ -41,4 +40,10 @@ if __name__ == '__main__':
 
     markers = Markers.from_c3d(mocap_c3d_path, prefix_delimiter=":")
     #print(markers)
+    print(type(markers.sel(channel="LASI", time=10)))
+    print(type(markers.values))
+    print(markers.values.ndim)
+    print(markers.values.shape)
+    print(markers.values.size)
+    print(markers.values.dtype)
     print(markers.sel(channel="LASI", time=10))
