@@ -1,0 +1,8 @@
+{
+  "root_folder":"../../HumanEva",
+  "sources": ["/S1","/S2","/S3","/S4"],
+  "mocap_folder":"/Mocap_Data",
+  "video_folder": "/Image_Data",
+  "backgrounds_folder":"/Background",
+  "color": true
+}
