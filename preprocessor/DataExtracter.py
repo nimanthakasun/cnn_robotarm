@@ -28,7 +28,8 @@ def get_marker_array(xarray_object, timestamp):
     - frames (np.array): Array of extracted frames.
     """
 
-    filtered_markers = xarray_object.sel(channel=marker_locations, time=timestamp).data
+    intr_filtered_markers = xarray_object.sel(channel=marker_locations)
+    filtered_markers = intr_filtered_markers.isel(time=(timestamp*3)).data
     return np.delete(filtered_markers, 3, 0)
 
 def get_mocap_params(xarray_object):

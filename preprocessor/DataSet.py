@@ -2,7 +2,8 @@ import os
 import torch
 from torch.utils.data import DataLoader, Dataset
 from datetime import datetime
-from preprocessor import FrameExtracter, BackgroundRemover,DataExtracter
+from preprocessor.FrameExtracter import FrameExtractor
+from preprocessor import BackgroundRemover,DataExtracter
 import numpy as np
 
 COLOR = True
@@ -14,13 +15,13 @@ class VideoDataset(Dataset):
         self.labels = c3d_samples
 
     def __len__(self):
-        return len(self.video_frames)
+        return  len(self.video_frames), len(self.labels),
 
     def __getitem__(self, idx):
         frame = self.video_frames[idx]
         label = self.labels[idx]
 
-        return torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+        return  torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32) # torch.tensor(frame,dtype=torch.float32),
 
     def get_paths(self):
         folder_path = '../HumanEva/S1/Image_Data'
@@ -42,12 +43,13 @@ class VideoDataset(Dataset):
 
     def load_from_image_source(self, video_path, bckg_video_path):
         no_bckg_frame = []
+        frm_extrct = FrameExtractor()
         print("Start scene frame extraction:", datetime.now().strftime("%H:%M:%S"), '\n')
-        frame_array, frame_count, frame_width, frame_height, frame_rate, frame_shape= FrameExtracter.extract_frames(video_path,2)
+        frame_array, frame_count, frame_width, frame_height, frame_rate, frame_shape= frm_extrct.extract_frames(video_path,2)
         print("End scene Frame calculation:", datetime.now().strftime("%H:%M:%S"), " Frame array of shape: ", frame_shape, '\n')
 
         print("Start background frame extraction:", datetime.now().strftime("%H:%M:%S"), '\n')
-        bckg_array, bgframe_count, bgframe_width, bgframe_height, bgframe_rate, bgframe_shape = FrameExtracter.extract_frames(bckg_video_path,2)
+        bckg_array, bgframe_count, bgframe_width, bgframe_height, bgframe_rate, bgframe_shape = frm_extrct.extract_frames(bckg_video_path,2)
         print("End background frame extraction:", datetime.now().strftime("%H:%M:%S"), " Background Frame array of shape: ", bgframe_shape, '\n')
 
         print("Start background removal:", datetime.now().strftime("%H:%M:%S"), '\n')
@@ -56,12 +58,14 @@ class VideoDataset(Dataset):
 
         print("End background removal:", datetime.now().strftime("%H:%M:%S"), '\n')
 
-        return no_bckg_frame
+        return frame_count, no_bckg_frame
 
-    def load_from_mocap_source(self, mocap_path):
+    def load_from_mocap_source(self, mocap_path, source_frame_count):
         c3d_file = DataExtracter.load_c3d(mocap_path)
         marker_array = []
-        for i in range(5):
+        for i in range(0,source_frame_count):
+            # if i == self.sourceframecnt:
+                # print("Counter ended")
             marker_array.append(DataExtracter.get_marker_array(c3d_file, i))
 
         return marker_array
@@ -69,7 +73,7 @@ class VideoDataset(Dataset):
     def load_dataset(self):
         video_path, bckg_video_path, mocap_path = self.get_paths()
 
-        image_numpy_array = self.load_from_image_source(video_path, bckg_video_path)
-        mocap_numpy_array = self.load_from_mocap_source(mocap_path)
+        srcframecount, image_numpy_array = self.load_from_image_source(video_path, bckg_video_path)
+        mocap_numpy_array = self.load_from_mocap_source(mocap_path, srcframecount)
 
         return image_numpy_array, mocap_numpy_array

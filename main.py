@@ -1,9 +1,6 @@
 import os
 import json
-
-from preprocessor import DataSet
-
-from preprocessor import sample
+import torch
 from preprocessor.DataSet import VideoDataset
 
 if __name__ == '__main__':
@@ -21,6 +18,9 @@ if __name__ == '__main__':
 
     dataset_tensor = VideoDataset()
 
-    sample_frame, sample_label  = dataset_tensor[0]
+    sample_frame,sample_label = dataset_tensor[0]
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
+    print("Saving Dataset:")
+    torch.save(dataset_tensor, "dataset_tensor.pt")
+    print(dataset_tensor.__len__())
