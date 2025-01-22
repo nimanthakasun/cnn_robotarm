@@ -214,16 +214,23 @@ class Net(nn.Module):
                 [288,   0, 288, 288,  True,  2],
                 [288, 288, 288, 288,  False, 1],
                 [288, 288, 288, 288,  False, 1],
-                [288, 288, 288, 416,  False, 1],
+                [288, 288, 288, 480,  False, 1],
             ]
             #Head can be replaced with alternative configurations depending on the problem
+            # self.head = nn.Sequential(
+            #         conv_bn(416, 756, 2),
+            #         conv_bn(756, 1024, 1),
+            #         conv_bn(1024, 1024, 2),
+            #         conv_1x1_bn(1024, 1280),
+            #         )
+            # self.num_features = 1280
             self.head = nn.Sequential(
-                    conv_bn(416, 756, 2),
-                    conv_bn(756, 1024, 1),
-                    conv_bn(1024, 1024, 2),
-                    conv_1x1_bn(1024, 1280),
+                    conv_bn(480, 640, 2),
+                    conv_bn(640, 853, 1),
+                    conv_bn(853, 1280, 2),
+                    conv_1x1_bn(1280, 42),
                     )
-            self.num_features = 1280
+            self.num_features = 42
         elif config=='SelecSLS60_B':
             print('SelecSLS60_B')
             #Define configuration of the network after the initial neck
@@ -312,19 +319,20 @@ class Net(nn.Module):
             self.features.append(SelecSLSBlock(inp, skip, k, oup, isFirst, stride))
         self.features = nn.Sequential(*self.features)
 
-        #Classifier To Produce Inputs to Softmax
-        self.classifier = nn.Sequential(
-                nn.Linear(self.num_features, nClasses),
-        )
+        # Classifier To Produce Inputs to Softmax
+        # self.classifier = nn.Sequential(
+        #         nn.Linear(self.num_features, nClasses),
+        # )
 
 
     def forward(self, x):
         x = self.stem(x)
         x = self.features([x])
         x = self.head(x[0])
-        x = x.mean(3).mean(2)
-        x = self.classifier(x)
-        #x = F.log_softmax(x)
+        # x = x.mean(3).mean(2)
+        # x = self.classifier(x)
+        x = x.view(x.size(0), 3, 14)
+        x = F.log_softmax(x)
         return x
 
 

@@ -15,7 +15,7 @@ class VideoDataset(Dataset):
         self.labels = c3d_samples
 
     def __len__(self):
-        return  len(self.video_frames), len(self.labels),
+        return  len(self.video_frames)
 
     def __getitem__(self, idx):
         frame = self.video_frames[idx]
