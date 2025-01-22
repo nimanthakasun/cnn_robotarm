@@ -7,10 +7,11 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import gc
-from stagetwo import selecsls, selecslsMod
+from stagetwo import selecsls, selecslsMod, selecslslight
 from torchinfo import summary
 
 from stagetwo.selecslsMod import SelecSLSNet
+from stagetwo.selecslslight import LightweightSelecSLS
 
 if __name__ == '__main__':
     with open('common_configs.json', 'r') as configfile:
@@ -68,6 +69,7 @@ if __name__ == '__main__':
 
 
     model = SelecSLSNet()
+    model2 = LightweightSelecSLS()
     learning_rate = 0.001
     num_epochs = 5
     accumulation_steps = 4
@@ -92,7 +94,7 @@ if __name__ == '__main__':
             labels = labels.float().to(device)
 
             # Forward pass
-            outputs = model(video_frames_rearranged)
+            outputs = model2(video_frames_rearranged)
             loss = criterion(outputs, labels)
 
             # Backward pass and optimization
