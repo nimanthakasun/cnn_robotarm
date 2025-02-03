@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     # Set batch size
     batch_size = 8
-    workers = 4
+    workers = 2
 
     # Create DataLoaders for training and testing
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 #     summary(model2)
 
     learning_rate = 0.01
-    num_epochs = 20
+    num_epochs = 100
     accumulation_steps = 4
 
     #loss function
