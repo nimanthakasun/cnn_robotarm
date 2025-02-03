@@ -21,6 +21,8 @@ class VideoDataset(Dataset):
         frame = self.video_frames[idx]
         label = self.labels[idx]
 
+        frame = frame/255.0
+
         return  torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32) # torch.tensor(frame,dtype=torch.float32),
 
     def get_paths(self):
