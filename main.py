@@ -86,8 +86,8 @@ if __name__ == '__main__':
 #     print("--------------- Normal-----------")
 #     summary(model2)
 
-    learning_rate = 0.001
-    num_epochs = 5
+    learning_rate = 0.01
+    num_epochs = 20
     accumulation_steps = 4
 
     #loss function
