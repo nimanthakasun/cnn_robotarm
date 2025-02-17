@@ -10,6 +10,10 @@ import gc
 import sys
 from stagetwo import selecsls, selecslsMod, selecslslight
 from torchinfo import summary
+from pyomeca import analogs, Markers
+
+# marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
+# marker_location = ["LSHO"]
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
@@ -20,17 +24,33 @@ if __name__ == '__main__':
 
     model_selection = sys.argv[1]
 
+    # c3d_data_xarray = Markers.from_c3d(os.path.join('../HumanEva/S1/Mocap_Data', 'Box_1.c3d'), prefix_delimiter=":")
+    # marker_array = c3d_data_xarray.sel(channel=marker_locations).data
+    # zeros_deleted = np.delete(marker_array, 3, 0)
+    #
+    # downsampled_moap = zeros_deleted[:,:,::3]
+    # print(type(marker_array))
+    # print(marker_array.shape)
+    # print("--------------- Before Delete ---------------")
+    # print(marker_array)
+    # print("--------------- After Delete ---------------")
+    # print(zeros_deleted)
+    # print(zeros_deleted.shape)
+    # print("--------------- After Downsample ---------------")
+    # print(downsampled_moap)
+    # print(downsampled_moap.shape)
+
 # Dataset creation
 #     dataset_tensor = VideoDataset()
 #     sample_frame,sample_label = dataset_tensor[0]
 #     print("Video shape: ", sample_frame.shape)
 #     print("Label shape: ", sample_label.shape)
 #     print("Saving Dataset:")
-#     torch.save(dataset_tensor, "dataset_tensor.pt")
+#     torch.save(dataset_tensor, "dataset_tensor_3.pt")
 #     print(dataset_tensor.__len__())
 
-# Dataset using
-    loaded_dataset = torch.load('dataset_tensor.pt')
+# #############################################   Dataset using - Init ################################################
+    loaded_dataset = torch.load('dataset_tensor_2.pt')
     video_frames = loaded_dataset.video_frames
     labels = loaded_dataset.labels
     video_length = len(loaded_dataset)
@@ -80,6 +100,8 @@ if __name__ == '__main__':
         case _:
             model = SelecSLSNet()
             print("Normal model selected - In Default")
+
+    model.load_state_dict(torch.load("selec_sls_motion_capture.pth"))
 
 #     print("--------------- Normal-----------")
 #     summary(model)
@@ -132,7 +154,7 @@ if __name__ == '__main__':
 
     print("Training completed!")
 
-
+########################################################################################################################
     # model = selecsls.Net('SelecSLS60')
     # criterion = nn.MSELoss(reduction='none')
     # optimizer = optim.Adam(model.parameters(), lr=0.001)

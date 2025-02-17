@@ -37,3 +37,7 @@ def get_mocap_params(xarray_object):
 
 def get_ndarray_params(ndarray_object):
     return ndarray_object.ndim, ndarray_object.shape, ndarray_object.size, ndarray_object.dtype
+
+def get_marker_array_full(xarray_object):
+    intr_filtered_markers = xarray_object.sel(channel=marker_locations).data
+    return np.delete(intr_filtered_markers, 3, 0)

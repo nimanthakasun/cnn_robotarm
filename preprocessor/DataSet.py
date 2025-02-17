@@ -33,11 +33,11 @@ class VideoDataset(Dataset):
 
         if COLOR:
             # Color Video
-            video_path = os.path.join(folder_path, 'Box_1_(C1).avi')
-            bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(C1).avi')
+            video_path = os.path.join(folder_path, 'Box_1_(C3).avi')
+            bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(C3).avi')
         else:
             # BW video
-            video_path = os.path.join(folder_path, 'Box_1_(BW1).avi')
+            video_path = os.path.join(folder_path, 'Box_1_(BW2).avi')
             bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(BW1).avi')
 
         mocap_c3d_path = os.path.join(mocap_folder_path, 'Box_1.c3d')
@@ -64,18 +64,18 @@ class VideoDataset(Dataset):
 
     def load_from_mocap_source(self, mocap_path, source_frame_count):
         c3d_file = DataExtracter.load_c3d(mocap_path)
-        marker_array = []
-        for i in range(0,source_frame_count):
-            # if i == self.sourceframecnt:
-                # print("Counter ended")
-            marker_array.append(DataExtracter.get_marker_array(c3d_file, i))
-
-        return marker_array
+        full_marker_array =  DataExtracter.get_marker_array_full(c3d_file)
+        shape_of_full_array = full_marker_array.shape
+        mocap_length = shape_of_full_array[2]
+        return self.downsample_mocap(source_frame_count,mocap_length,full_marker_array)
 
     def load_dataset(self):
         video_path, bckg_video_path, mocap_path = self.get_paths()
 
         srcframecount, image_numpy_array = self.load_from_image_source(video_path, bckg_video_path)
         mocap_numpy_array = self.load_from_mocap_source(mocap_path, srcframecount)
-
         return image_numpy_array, mocap_numpy_array
+
+    def downsample_mocap(self, frame_count, mocap_sample_count, mocap_array):
+        ratio = mocap_sample_count//frame_count
+        return mocap_array[:,:,::int(ratio)]
