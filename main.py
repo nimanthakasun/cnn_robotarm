@@ -8,21 +8,28 @@ import torch.nn as nn
 import torch.optim as optim
 import gc
 import sys
-from stagetwo import selecsls, selecslsMod, selecslslight
+from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 from torchinfo import summary
 from pyomeca import analogs, Markers
+from preprocessor import DataExtracter
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
+from stagetwo.combineModel import MotionCapturePipeline
 
 if __name__ == '__main__':
     with open('common_configs.json', 'r') as configfile:
         configuration_data = json.load(configfile)
 
     model_selection = sys.argv[1]
+
+    # mocap_folder_path = '../HumanEva/S1/Mocap_Data'
+    # mocap_c3d_path = os.path.join(mocap_folder_path, 'Box_1.c3d')
+    # dims, axis, channel, time, attrs = DataExtracter.get_mocap_params(DataExtracter.load_c3d(mocap_c3d_path))
+    # print(len(time.data))
 
     # c3d_data_xarray = Markers.from_c3d(os.path.join('../HumanEva/S1/Mocap_Data', 'Box_1.c3d'), prefix_delimiter=":")
     # marker_array = c3d_data_xarray.sel(channel=marker_locations).data
@@ -40,7 +47,7 @@ if __name__ == '__main__':
     # print(downsampled_moap)
     # print(downsampled_moap.shape)
 
-# Dataset creation
+###############################################   Dataset creation   ###################################################
 #     dataset_tensor = VideoDataset()
 #     sample_frame,sample_label = dataset_tensor[0]
 #     print("Video shape: ", sample_frame.shape)
@@ -49,12 +56,11 @@ if __name__ == '__main__':
 #     torch.save(dataset_tensor, "dataset_tensor_3.pt")
 #     print(dataset_tensor.__len__())
 
-# #############################################   Dataset using - Init ################################################
+###############################################   Dataset using - Init #################################################
     loaded_dataset = torch.load('dataset_tensor_2.pt')
     video_frames = loaded_dataset.video_frames
     labels = loaded_dataset.labels
-    video_length = len(loaded_dataset)
-    print("Dataset length: ", video_length)
+
     print("Video array shape: ", np.array(video_frames).shape)
     print("Label array shape: ", np.array(labels).shape)
     print("Video length: ", len(video_frames))
@@ -62,6 +68,8 @@ if __name__ == '__main__':
     one_frame, one_label = loaded_dataset[0]
     print("Video frame shape: ", one_frame.shape[1])
     print("Label frame shape: ", one_label.shape[1])
+    print("Length of Video frame array", len(loaded_dataset.video_frames))
+    print("Length of labels frame array", len(loaded_dataset.labels))
 
     if len(loaded_dataset.labels) > len(loaded_dataset.video_frames):
         loaded_dataset.labels = loaded_dataset.labels[:len(loaded_dataset.video_frames)]
@@ -97,11 +105,14 @@ if __name__ == '__main__':
         case "light":
             model = LightweightSelecSLS()
             print("Light model selected")
+        case "combined":
+            model = MotionCapturePipeline()
+            print("Combined model selected")
         case _:
             model = SelecSLSNet()
             print("Normal model selected - In Default")
 
-    model.load_state_dict(torch.load("selec_sls_motion_capture.pth"))
+    # model.load_state_dict(torch.load("selec_sls_motion_capture.pth"))
 
 #     print("--------------- Normal-----------")
 #     summary(model)
@@ -154,45 +165,15 @@ if __name__ == '__main__':
 
     print("Training completed!")
 
-########################################################################################################################
-    # model = selecsls.Net('SelecSLS60')
-    # criterion = nn.MSELoss(reduction='none')
-    # optimizer = optim.Adam(model.parameters(), lr=0.001)
-    #
-    # print("--------------------- Model goes from here -------------------")
-    # # print(model)
-    # # summary(model)
-    #
-    # epochs = 5
-    # for epoch in range(epochs):
-    #     model.train()
-    #     total_loss = 0.0
-    #     for video_frames, labels in train_loader:
-    #         video_frames = video_frames.float()  # Convert to float if not already
-    #         labels = labels.float()  # Convert labels to float
-    #
-    #         # print("Video array shape in loop: ", np.array(video_frames).shape)
-    #         video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
-    #
-    #         print("Input shape:", video_frames_rearranged.shape)
-    #         print("Label shape:", labels.shape)
-    #
-    #         # print("Changed array shape in loop: ", np.array(video_frames_rearranged).shape)
-    #         # Forward pass
-    #         # outputs = model(video_frames_rearranged)
-    #         # labels = labels.view(outputs.shape)
-    #         # loss = criterion(outputs, labels)
-    #
-    #         # Backward pass and optimization
-    #         # optimizer.zero_grad()
-    #         outputs = model(video_frames_rearranged)
-    #         print("Output shape:", outputs.shape)
-    #         break
-    #         loss = criterion(outputs, labels)
-    #         loss.backward()
-    #         optimizer.step()
-    #
-    #         # total_loss += loss.item()
-    #
-    #     # print(f"Epoch [{epoch + 1}/{epochs}], Loss: {total_loss / len(train_loader):.4f}")
-    #     print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
+# def load_dataset(dataset_path):
+#     return torch.load(dataset_path)
+#
+# def train_model(model, loader, optimizer, criterion, device):
+#     model.train()
+#     total_loss = 0
+#     total_batches = 0
+#
+#     video_frames = loaded_dataset.video_frames
+#     labels = loaded_dataset.labels
+#
+#     for batch

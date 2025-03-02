@@ -64,10 +64,18 @@ class VideoDataset(Dataset):
 
     def load_from_mocap_source(self, mocap_path, source_frame_count):
         c3d_file = DataExtracter.load_c3d(mocap_path)
-        full_marker_array =  DataExtracter.get_marker_array_full(c3d_file)
-        shape_of_full_array = full_marker_array.shape
-        mocap_length = shape_of_full_array[2]
-        return self.downsample_mocap(source_frame_count,mocap_length,full_marker_array)
+        dims, axis, channel, time, attrs = DataExtracter.get_mocap_params(DataExtracter.load_c3d(mocap_path))
+        mocap_sample_count = len(time.data)
+        ratio = mocap_sample_count//source_frame_count
+        marker_array = []
+        for i in range(0,source_frame_count):
+            marker_array.append(DataExtracter.get_marker_array(c3d_file, i, ratio))
+
+        return marker_array
+        # full_marker_array =  DataExtracter.get_marker_array(c3d_file, source_frame_count)
+        # shape_of_full_array = full_marker_array.shape
+        # mocap_length = shape_of_full_array[2]
+        # return self.downsample_mocap(source_frame_count,mocap_length,full_marker_array)
 
     def load_dataset(self):
         video_path, bckg_video_path, mocap_path = self.get_paths()
@@ -76,6 +84,22 @@ class VideoDataset(Dataset):
         mocap_numpy_array = self.load_from_mocap_source(mocap_path, srcframecount)
         return image_numpy_array, mocap_numpy_array
 
-    def downsample_mocap(self, frame_count, mocap_sample_count, mocap_array):
-        ratio = mocap_sample_count//frame_count
-        return mocap_array[:,:,::int(ratio)]
+    # def downsample_mocap(self, frame_count, mocap_sample_count, mocap_array):
+    #     ratio = mocap_sample_count//frame_count
+    #     # return mocap_array[:,:,::int(ratio)]
+    #     averaged_mocap = []
+    #     # for i in range(frame_count):
+    #     #     start = i * ratio
+    #     #     end = start + ratio
+    #     #     averaged_sample = np.mean(mocap_array[start:end], axis=0)  # Average over the range
+    #     #     averaged_mocap.append(averaged_sample)
+    #     #
+    #     # return np.array(averaged_mocap).transpose(2, 0, 1)
+    #
+    #     for i in range(frame_count):
+    #         start = i * ratio
+    #         end = start + ratio
+    #         averaged_sample = np.mean(mocap_array[start:end], axis=0)  # Average over the range
+    #         averaged_mocap.append(averaged_sample)
+    #
+    #     start = i * ratio
