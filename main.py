@@ -115,6 +115,7 @@ if __name__ == '__main__':
     #loss function
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
+    model.to(device)
     for epoch in range(num_epochs):
         # model.train()
         epoch_loss = 0
