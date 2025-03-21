@@ -119,13 +119,13 @@ if __name__ == '__main__':
     for dataset_path in dataset_paths:
         # model.train()
         epoch_loss = 0
-
+        train_loader, test_loader = prepare_dataset(dataset_path)
         for epoch in range(num_epochs):
-            train_loader, test_loader = prepare_dataset(dataset_path)
-            del test_loader
+            # del test_loader
             avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
             epoch_loss += avgerage_loss
-            del train_loader
+
+        del train_loader, test_loader
 
         # Print average loss for the epoch
         print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {epoch_loss/len(dataset_paths):.4f}")
