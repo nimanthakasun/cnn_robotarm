@@ -116,13 +116,11 @@ if __name__ == '__main__':
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     model.to(device)
-    for epoch in range(num_epochs):
+    for dataset_path in dataset_paths:
         # model.train()
         epoch_loss = 0
 
-        for dataset_path in dataset_paths:
-            # Forward pass
-
+        for epoch in range(num_epochs):
             train_loader, test_loader = prepare_dataset(dataset_path)
             del test_loader
             avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
