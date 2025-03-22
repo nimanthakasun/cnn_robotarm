@@ -85,7 +85,7 @@ def train_model(model, loader, optimizer, criterion, device):
 
     # Print average loss for the epoch
     avg_loss = total_loss / len(train_loader)
-    print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {avg_loss:.4f}")
+    print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in epoch: {avg_loss:.4f}")
     return avg_loss
     # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {avg_loss:.4f}")
 
@@ -130,4 +130,4 @@ if __name__ == '__main__':
         del train_loader, test_loader
 
         # Print average loss for the epoch
-        print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {epoch_loss/len(dataset_paths):.4f}")
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in ds: {epoch_loss/len(dataset_paths):.4f}")
