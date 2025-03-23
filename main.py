@@ -15,7 +15,8 @@ from preprocessor import DataExtracter
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
-dataset_paths = ['dataset_tensor_1.pt', 'dataset_tensor_2.pt', 'dataset_tensor_3.pt']
+# dataset_paths = ['dataset_tensor_1.pt', 'dataset_tensor_2.pt', 'dataset_tensor_3.pt']
+dataset_paths = ['dataset_tensor_4.pt', 'dataset_tensor_5.pt', 'dataset_tensor_6.pt']
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
@@ -28,7 +29,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    torch.save(dataset_tensor, "dataset_tensor_3.pt")
+    torch.save(dataset_tensor, "dataset_tensor_4.pt")
     print(dataset_tensor.__len__())
 
 def dataset_details(path):
@@ -110,8 +111,9 @@ if __name__ == '__main__':
     num_epochs = 250
     accumulation_steps = 4
 
+    # create_dataset()
     # dataset_details('dataset_tensor_1.pt')
-
+    #
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     match model_selection:
