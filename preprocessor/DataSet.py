@@ -1,6 +1,7 @@
 import os
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 from datetime import datetime
 from preprocessor.FrameExtracter import FrameExtractor
 from preprocessor import BackgroundRemover,DataExtracter
@@ -14,6 +15,18 @@ class VideoDataset(Dataset):
         self.video_frames = extracted_frames
         self.labels = c3d_samples
 
+# Normalize Images
+        image_tensors = []
+        for img in self.video_frames:
+            img_tensor = transforms.ToTensor()(img)
+            image_tensors.append(img_tensor)
+
+        image_tensors = torch.stack(image_tensors)
+        self.image_mean = image_tensors.mean(dim=(0, 1, 2))
+        self.image_std = image_tensors.std(dim=(0, 1, 2))
+
+#Normalize labels
+
     def __len__(self):
         return  len(self.video_frames)
 
@@ -21,9 +34,10 @@ class VideoDataset(Dataset):
         frame = self.video_frames[idx]
         label = self.labels[idx]
 
-        frame = frame/255.0
+        image_tensor = transforms.ToTensor()(frame)
+        image_tensor = (image_tensor - self.image_mean) / self.image_std
 
-        return  torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32) # torch.tensor(frame,dtype=torch.float32),
+        return  image_tensor, torch.tensor(label, dtype=torch.float32) # torch.tensor(frame,dtype=torch.float32),
 
     def get_paths(self):
         folder_path = '../HumanEva/S1/Image_Data'
