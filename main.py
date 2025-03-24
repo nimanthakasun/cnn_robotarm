@@ -29,7 +29,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    torch.save(dataset_tensor, "dataset_tensor_4.pt")
+    torch.save(dataset_tensor, "dataset_tensor_6.pt")
     print(dataset_tensor.__len__())
 
 def dataset_details(path):
@@ -37,12 +37,14 @@ def dataset_details(path):
     print("Length of frames set: ", len(loaded_dataset.video_frames))
     print("Length of labels set: ", len(loaded_dataset.labels))
 
-    sample_frame, sample_label = loaded_dataset[0]
+    sample_frame, sample_label = loaded_dataset[25]
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
 
     print("Video tensor shape: ", np.asarray(loaded_dataset.video_frames).shape)
     print("Label tensor shape: ", np.asarray(loaded_dataset.labels).shape)
+
+    print (sample_label)
 
 def prepare_dataset(dataset_path):
     loaded_dataset = torch.load(dataset_path)
@@ -112,7 +114,7 @@ if __name__ == '__main__':
     accumulation_steps = 4
 
     # create_dataset()
-    # dataset_details('dataset_tensor_1.pt')
+    # dataset_details('dataset_tensor_4.pt')
     #
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

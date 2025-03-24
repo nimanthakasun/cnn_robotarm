@@ -14,7 +14,7 @@ class VideoDataset(Dataset):
         extracted_frames, c3d_samples = self.load_dataset()
         self.video_frames = extracted_frames
         self.labels = c3d_samples
-# Normalize Images
+# # Normalize Images
 #         image_tensors = []
 #         for img in self.video_frames:
 #             img_tensor = transforms.ToTensor()(img)
@@ -23,6 +23,11 @@ class VideoDataset(Dataset):
 #         image_tensors = torch.stack(image_tensors)
 #         self.image_mean = image_tensors.mean(dim=(0, 1, 2), keepdim=True)
 #         self.image_std = image_tensors.std(dim=(0, 1, 2))
+#
+# # Normalize Labels
+#         labels_array = np.array(self.labels)
+#         self.label_min = np.min(labels_array, axis=(0, 2), keepdims=True)
+#         self.label_max = np.max(labels_array, axis=(0, 2), keepdims=True)
 
 #Normalize labels
 
@@ -35,8 +40,12 @@ class VideoDataset(Dataset):
 
         # image_tensor = transforms.ToTensor()(frame)
         # image_tensor = (image_tensor - self.image_mean) / self.image_std
-
-        # return  image_tensor, torch.tensor(label, dtype=torch.float32) # torch.tensor(frame,dtype=torch.float32),
+        #
+        # label_array = np.array(label)
+        # label_normalized = (label_array - self.label_min) / (self.label_max - self.label_min)
+        # label_tensor = torch.from_numpy(label_normalized).float()
+        #
+        # return  image_tensor, label_tensor # torch.tensor(frame,dtype=torch.float32),
 
         return torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
@@ -48,8 +57,8 @@ class VideoDataset(Dataset):
 
         if COLOR:
             # Color Video
-            video_path = os.path.join(folder_path, 'Box_1_(C1).avi')
-            bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(C1).avi')
+            video_path = os.path.join(folder_path, 'Box_1_(C3).avi')
+            bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(C3).avi')
         else:
             # BW video
             video_path = os.path.join(folder_path, 'Box_1_(BW2).avi')
