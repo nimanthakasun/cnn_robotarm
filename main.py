@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import gc
 import sys
+
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 from torchinfo import summary
 from pyomeca import analogs, Markers
@@ -64,7 +65,7 @@ def prepare_dataset(dataset_path):
 
     # Set batch size
     batch_size = 8
-    workers = 2
+    workers = os.cpu_count()
 
     # Create DataLoaders for training and testing
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -106,11 +107,12 @@ def train_model(model, loader, optimizer, criterion, device):
 
 if __name__ == '__main__':
     model_selection = sys.argv[1]
+    epoch_input = sys.argv[2]
     # Set batch size
     batch_size = 8
-    workers = 2
+    workers = os.cpu_count()
     learning_rate = 0.05
-    num_epochs = 250
+    num_epochs = epoch_input
     accumulation_steps = 4
 
     # create_dataset()
