@@ -112,7 +112,7 @@ if __name__ == '__main__':
     batch_size = 8
     workers = os.cpu_count()
     learning_rate = 0.05
-    num_epochs = epoch_input
+    num_epochs = int(epoch_input)
     accumulation_steps = 4
 
     # create_dataset()
