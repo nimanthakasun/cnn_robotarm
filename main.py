@@ -108,10 +108,11 @@ def train_model(model, loader, optimizer, criterion, device):
 if __name__ == '__main__':
     model_selection = sys.argv[1]
     epoch_input = sys.argv[2]
+    lr_input = sys.argv[3]
     # Set batch size
     batch_size = 8
     workers = os.cpu_count()
-    learning_rate = 0.05
+    learning_rate = float(lr_input)
     num_epochs = int(epoch_input)
     accumulation_steps = 4
 
