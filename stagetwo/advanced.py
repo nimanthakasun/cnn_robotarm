@@ -128,7 +128,7 @@ class Enhanced3DRegressor(nn.Module):
         return joints3d
 
 
-class MotionCapturePipeline(nn.Module):
+class MotionCapturePipelineAdvanced(nn.Module):
     def __init__(self):
         super().__init__()
         self.part2d = EnhancedPartRegressor2D(in_channels=3, num_joints=14)

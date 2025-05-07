@@ -22,6 +22,8 @@ dataset_paths = ['dataset_tensor_4.pt', 'dataset_tensor_5.pt', 'dataset_tensor_6
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
 from stagetwo.combineModel import MotionCapturePipeline
+from stagetwo.advanced import MotionCapturePipelineAdvanced
+from stagetwo.enhancedAdv import MotionCaptureSystem
 
 # ###############################################   Dataset creation   ###################################################
 def create_dataset():
@@ -131,6 +133,12 @@ if __name__ == '__main__':
         case "combined":
             model = MotionCapturePipeline()
             print("Combined model selected")
+        case "advanced":
+            model = MotionCapturePipelineAdvanced()
+            print("Advanced model selected")
+        case "enhanced":
+            model = MotionCapturePipelineAdvanced()
+            print("Enhanced model selected")
         case _:
             model = SelecSLSNet()
             print("Normal model selected - In Default")
