@@ -88,15 +88,20 @@ def train_model(model, loader, optimizer, criterion, device):
         labels = labels.float().to(device)
 
         # Forward pass
+        optimizer.zero_grad()
+
         outputs = model(video_frames_rearranged)
         loss = criterion(outputs, labels)
 
         # Backward pass and optimization
-        loss = loss / accumulation_steps
+        # loss = loss / accumulation_steps
+        # loss.backward()
+        # if (i + 1) % accumulation_steps == 0:
+        #     optimizer.step()
+        #     optimizer.zero_grad()
+
         loss.backward()
-        if (i + 1) % accumulation_steps == 0:
-            optimizer.step()
-            optimizer.zero_grad()
+        optimizer.step()
 
         total_loss += loss.detach().item()
         del loss, outputs
@@ -137,7 +142,7 @@ if __name__ == '__main__':
             model = MotionCapturePipelineAdvanced()
             print("Advanced model selected")
         case "enhanced":
-            model = MotionCapturePipelineAdvanced()
+            model = MotionCaptureSystem()
             print("Enhanced model selected")
         case _:
             model = SelecSLSNet()
@@ -159,4 +164,4 @@ if __name__ == '__main__':
         del train_loader, test_loader
 
         # Print average loss for the epoch
-        print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in ds: {epoch_loss/len(dataset_paths):.4f}")
+        # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in ds: {epoch_loss/len(dataset_paths):.4f}")
