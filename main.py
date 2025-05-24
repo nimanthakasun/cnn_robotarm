@@ -25,6 +25,10 @@ from stagetwo.combineModel import MotionCapturePipeline
 from stagetwo.advanced import MotionCapturePipelineAdvanced
 from stagetwo.enhancedAdv import MotionCaptureSystem
 
+from Training import advanceTrainingScheme
+from Training import lossCriterions
+from Training import poseMatrix
+
 # ###############################################   Dataset creation   ###################################################
 def create_dataset():
     dataset_tensor = VideoDataset()
@@ -91,7 +95,7 @@ def train_model(model, loader, optimizer, criterion, device):
         optimizer.zero_grad()
 
         outputs = model(video_frames_rearranged)
-        loss = criterion(outputs, labels)
+        loss = torch.sqrt(criterion(outputs, labels))
 
         # Backward pass and optimization
         # loss = loss / accumulation_steps
@@ -150,6 +154,7 @@ if __name__ == '__main__':
 
     #loss function
     criterion = nn.MSELoss()
+    # criterion = poseMatrix.AlignedPoseLoss()
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     model.to(device)
     for dataset_path in dataset_paths:
