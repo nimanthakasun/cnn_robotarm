@@ -3,6 +3,7 @@ import json
 import torch
 from preprocessor.DataSet import VideoDataset
 from torch.utils.data import DataLoader, TensorDataset, random_split
+# from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
@@ -97,13 +98,6 @@ def train_model(model, loader, optimizer, criterion, device):
         outputs = model(video_frames_rearranged)
         loss = torch.sqrt(criterion(outputs, labels))
 
-        # Backward pass and optimization
-        # loss = loss / accumulation_steps
-        # loss.backward()
-        # if (i + 1) % accumulation_steps == 0:
-        #     optimizer.step()
-        #     optimizer.zero_grad()
-
         loss.backward()
         optimizer.step()
 
@@ -113,6 +107,7 @@ def train_model(model, loader, optimizer, criterion, device):
     # Print average loss for the epoch
     avg_loss = total_loss / len(train_loader)
     print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in epoch: {avg_loss:.4f}")
+
     return avg_loss
     # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {avg_loss:.4f}")
 
@@ -152,11 +147,16 @@ if __name__ == '__main__':
             model = SelecSLSNet()
             print("Normal model selected - In Default")
 
+
+    summary(model)
+    print(model)
     #loss function
     criterion = nn.MSELoss()
     # criterion = poseMatrix.AlignedPoseLoss()
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     model.to(device)
+    # writer = SummaryWriter()
+
     for dataset_path in dataset_paths:
         # model.train()
         epoch_loss = 0
