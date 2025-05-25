@@ -121,10 +121,9 @@ def generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4):
     return heatmaps
 
 def train_model(model, loader, optimizer, criterion, device):
+# Taining part
     model.train()
     total_loss = 0
-    batch_iteration = 0
-
     optimizer.zero_grad()
     for i, (video_frames, labels) in enumerate(loader):
         video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
@@ -145,8 +144,6 @@ def train_model(model, loader, optimizer, criterion, device):
         heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
         output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
         loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
-
-
         loss['total'].backward()
         optimizer.step()
 
@@ -158,7 +155,33 @@ def train_model(model, loader, optimizer, criterion, device):
     print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in epoch: {avg_loss:.4f}")
 
     return avg_loss
-    # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {avg_loss:.4f}")
+
+def evaluate_model(model, dataloader, criterion, device):
+    model.eval()  # Set model to evaluation mode
+    total_loss = 0.0
+    total_samples = 0
+
+    with torch.no_grad():
+        for video_frames, labels in enumerate(dataloader):
+            video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
+            del video_frames
+            video_frames_rearranged = video_frames_rearranged.float().to(device)
+
+            labels = labels.to(device)
+
+            # Forward pass
+            predictions = model(video_frames_rearranged)
+
+            # Compute loss
+            loss = criterion(predictions, labels)
+            total_loss += loss.item() * video_frames_rearranged.size(0)
+            total_samples += video_frames_rearranged.size(0)
+
+            # (Optional) Compute additional metrics, e.g. MPJPE, RMSE, etc.
+
+    avg_loss = total_loss / total_samples
+    print(f"Evaluation: Average Loss: {avg_loss:.4f}")
+    return avg_loss
 
 if __name__ == '__main__':
     model_selection = sys.argv[1]
@@ -216,6 +239,7 @@ if __name__ == '__main__':
         for epoch in range(num_epochs):
             # del test_loader
             avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
+            val_loss = evaluate_model(model, test_loader, criterion, device)
             epoch_loss += avgerage_loss
 
         del train_loader, test_loader
