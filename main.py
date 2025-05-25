@@ -162,7 +162,7 @@ def evaluate_model(model, dataloader, criterion, device):
     total_samples = 0
 
     with torch.no_grad():
-        for video_frames, labels in enumerate(dataloader):
+        for i, (video_frames, labels)in enumerate(dataloader):
             video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
             del video_frames
             video_frames_rearranged = video_frames_rearranged.float().to(device)
