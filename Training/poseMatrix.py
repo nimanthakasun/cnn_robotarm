@@ -23,6 +23,7 @@ class PoseMetrics(nn.Module):
 
         return {'mpjpe': mpjpe, 'pa_mpjpe': pa_mpjpe, 'accel_error': accel_error}
 
+    @staticmethod
     def procrustes(pred, target):
         aligned_pred = torch.zeros_like(pred)
 
@@ -39,8 +40,9 @@ class PoseMetrics(nn.Module):
             # Ensure proper rotation (no reflection)
             R = V @ U.T
             if torch.det(R) < 0:
-                V[:, -1] *= -1
-                R = V @ U.T
+                V_reflected = V.clone()
+                V_reflected[:, -1] = -V_reflected[:, -1]
+                R = V_reflected @ U.T
 
             # Apply optimal rotation
             aligned_pred[i] = R @ pred_centered + target[i].mean(dim=1, keepdim=True)
@@ -48,20 +50,34 @@ class PoseMetrics(nn.Module):
         return aligned_pred
 
 
-class AlignedPoseLoss(nn.Module):
-    def __init__(self):
+class CombinedPoseLoss(nn.Module):
+    def __init__(self, heatmap_weight=1.0, mpjpe_weight=1.0, pa_mpjpe_weight=0.5, accel_weight=0.1):
         super().__init__()
-        self.mse = nn.MSELoss()
+        self.heatmap_loss = nn.MSELoss()
+        self.pose_metrics = PoseMetrics()
+        self.heatmap_weight = heatmap_weight
+        self.mpjpe_weight = mpjpe_weight
+        self.pa_mpjpe_weight = pa_mpjpe_weight
+        self.accel_weight = accel_weight
 
-    def forward(self, pred, target):
-        # Align predictions to ground truth
-        aligned_pred = PoseMetrics.procrustes(pred, target)
+    def forward(self,pred_2d, pred_3d, target_2d, target_3d):
+        losses = {}
 
-        # Calculate aligned MSE
-        aligned_loss = self.mse(aligned_pred, target)
+        # 1. Heatmap Loss (MSE)
+        losses['heatmap_loss'] = self.heatmap_loss(pred_2d, target_2d)
 
-        # Optional: Add original MSE for stability
-        raw_loss = self.mse(pred, target)
+        # 2. 3D Metrics
+        metrics = self.pose_metrics(pred_3d, target_3d)
+        losses.update(metrics)
 
-        return 0.7 * aligned_loss + 0.3 * raw_loss
+        # 3. Weighted Sum
+        total = (
+                self.heatmap_weight * losses['heatmap_loss'] +
+                self.mpjpe_weight * losses['mpjpe'] +
+                self.pa_mpjpe_weight * losses['pa_mpjpe'] +
+                self.accel_weight * losses['accel_error']
+        )
+
+        losses['total'] = total
+        return losses
 

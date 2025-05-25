@@ -80,6 +80,46 @@ def prepare_dataset(dataset_path):
 
     return train_loader, test_loader
 
+def orthographic_projection(joints_3d, image_size=(640, 480)):
+
+    B, _, J = joints_3d.shape
+    W, H = image_size
+    joints_3d = joints_3d.permute(0, 2, 1)  # (B, 14, 3)
+
+    x = joints_3d[..., 0]
+    y = joints_3d[..., 1]
+
+    # Normalize to [-1, 1]
+    x_norm = x / x.abs().max(dim=1, keepdim=True)[0].clamp(min=1e-5)
+    y_norm = y / y.abs().max(dim=1, keepdim=True)[0].clamp(min=1e-5)
+
+    # Rescale to image size
+    u = (x_norm + 1) * W / 2
+    v = (y_norm + 1) * H / 2
+
+    return torch.stack([u, v], dim=-1)
+
+def generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4):
+    B, J, _ = joints_2d.shape
+    H, W = heatmap_size
+    device = joints_2d.device
+
+    # Create mesh grid for heatmap
+    y_range = torch.arange(0, H, device=device).view(1, 1, H, 1)
+    x_range = torch.arange(0, W, device=device).view(1, 1, 1, W)
+
+    y_range = y_range.expand(B, J, H, W)
+    x_range = x_range.expand(B, J, H, W)
+
+    # Get joint coordinates
+    x = joints_2d[:, :, 0].view(B, J, 1, 1)
+    y = joints_2d[:, :, 1].view(B, J, 1, 1)
+
+    # Compute Gaussian heatmaps
+    heatmaps = torch.exp(-((x_range - x) ** 2 + (y_range - y) ** 2) / (2 * sigma ** 2))
+
+    return heatmaps
+
 def train_model(model, loader, optimizer, criterion, device):
     model.train()
     total_loss = 0
@@ -95,14 +135,23 @@ def train_model(model, loader, optimizer, criterion, device):
         # Forward pass
         optimizer.zero_grad()
 
-        outputs = model(video_frames_rearranged)
-        loss = torch.sqrt(criterion(outputs, labels))
+        # Old way
+        # outputs = model(video_frames_rearranged)
+        # loss = torch.sqrt(criterion(outputs, labels))
 
-        loss.backward()
+        # New way
+        joints_2d = orthographic_projection(labels, (480, 640))
+        gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4)
+        heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
+        output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
+        loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
+
+
+        loss['total'].backward()
         optimizer.step()
 
-        total_loss += loss.detach().item()
-        del loss, outputs
+        total_loss += loss['total'].detach().item()
+        del loss, heatmaps_2d, output_3d
 
     # Print average loss for the epoch
     avg_loss = total_loss / len(train_loader)
@@ -150,9 +199,12 @@ if __name__ == '__main__':
 
     summary(model)
     print(model)
-    #loss function
-    criterion = nn.MSELoss()
-    # criterion = poseMatrix.AlignedPoseLoss()
+    #loss function - old
+    # criterion = nn.MSELoss()
+
+    # loss function - new
+    criterion = poseMatrix.CombinedPoseLoss()
+
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     model.to(device)
     # writer = SummaryWriter()
