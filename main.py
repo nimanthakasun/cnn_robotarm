@@ -128,12 +128,12 @@ def train_model(model, loader, optimizer, criterion, device):
     optimizer.zero_grad()
 
     loss_log = {
-        'total': 0.0,
-        'heatmap_loss': 0.0,
-        'pose_loss': 0.0,
         'mpjpe': 0.0,
         'pa_mpjpe': 0.0,
-        'accel_error': 0.0
+        'accel_error': 0.0,
+        'total': 0.0,
+        'heatmap_loss': 0.0
+        # 'pose_loss': 0.0,
     }
 
     num_batches = 0
