@@ -174,12 +174,12 @@ def evaluate_model(model, dataloader, criterion, device):
             labels = labels.float().to(device)
 
             # Optional: Generate 2D heatmaps from 3D labels
-            joints_2d = orthographic_projection(labels, (video_frames.shape[3], video_frames.shape[2]))  # [B, 14, 2]
-            gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(video_frames.shape[2], video_frames.shape[3]), sigma=4)
+            joints_2d = orthographic_projection(labels, (video_frames_rearranged.shape[3], video_frames_rearranged.shape[2]))  # [B, 14, 2]
+            gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(video_frames_rearranged.shape[2], video_frames_rearranged.shape[3]), sigma=4)
 
             # Model forward
-            heatmaps_2d = model.part_regressor_2d(video_frames)
-            output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
+            heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
+            output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
 
             # Compute loss and metrics
             loss_dict = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
