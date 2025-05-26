@@ -207,7 +207,7 @@ def evaluate_model(model, dataloader, criterion, device):
             metrics_total['mpjpe'] += loss_dict['mpjpe'].item()
             metrics_total['pa_mpjpe'] += loss_dict['pa_mpjpe'].item()
             metrics_total['accel_error'] += loss_dict['accel_error'].item()
-            # metrics_total['loss'] += loss_dict['total'].item()
+            metrics_total['loss'] += loss_dict['total'].item()
             num_batches += 1
 
     # Average across batches
