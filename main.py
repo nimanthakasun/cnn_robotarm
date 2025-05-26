@@ -304,6 +304,9 @@ if __name__ == '__main__':
             # epoch_loss += avgerage_loss
         del train_loader, test_loader
 
+    # Save model
+    torch.save(model.state_dict(), "mocap_model.pth")
+
     # Plotting functions
     epochs = range(1, len(train_losses) + 1)
 
