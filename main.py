@@ -290,16 +290,16 @@ if __name__ == '__main__':
             val_loss = evaluate_model(model, test_loader, criterion, device)
 
             # Training Related parameters
-            train_losses.append(avgerage_loss['total'].item())
-            train_mpjpe.append(avgerage_loss['mpjpe'].item())
-            train_pa_mpjpe.append(avgerage_loss['pa_mpjpe'].item())
-            train_accel_error.append(avgerage_loss['accel_error'].item())
+            train_losses.append(avgerage_loss['total'])
+            train_mpjpe.append(avgerage_loss['mpjpe'])
+            train_pa_mpjpe.append(avgerage_loss['pa_mpjpe'])
+            train_accel_error.append(avgerage_loss['accel_error'])
 
             # Evaluation Related Parameters
-            # eval_losses.append(val_loss['total'].item())
-            # eval_mpjpe.append(val_loss['mpjpe'].item())
-            # eval_pa_mpjpe.append(val_loss['pa_mpjpe'].item())
-            # eval_accel_error.append(val_loss['accel_error'].item())
+            eval_losses.append(val_loss['total'])
+            eval_mpjpe.append(val_loss['mpjpe'])
+            eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
+            eval_accel_error.append(val_loss['accel_error'])
 
             epoch_loss += avgerage_loss
         del train_loader, test_loader
