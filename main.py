@@ -301,7 +301,7 @@ if __name__ == '__main__':
             eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
             eval_accel_error.append(val_loss['accel_error'])
 
-            epoch_loss += avgerage_loss
+            # epoch_loss += avgerage_loss
         del train_loader, test_loader
 
     # Plotting functions
