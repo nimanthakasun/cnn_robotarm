@@ -253,8 +253,8 @@ if __name__ == '__main__':
         for epoch in range(num_epochs):
             # del test_loader
             avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
-            val_loss = evaluate_model(model, test_loader, criterion, device)
             epoch_loss += avgerage_loss
+        val_loss = evaluate_model(model, test_loader, criterion, device)
 
         del train_loader, test_loader
 
