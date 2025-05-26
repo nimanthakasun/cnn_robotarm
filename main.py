@@ -296,7 +296,7 @@ if __name__ == '__main__':
             train_accel_error.append(avgerage_loss['accel_error'])
 
             # Evaluation Related Parameters
-            eval_losses.append(val_loss['total'])
+            eval_losses.append(val_loss['loss'])
             eval_mpjpe.append(val_loss['mpjpe'])
             eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
             eval_accel_error.append(val_loss['accel_error'])
