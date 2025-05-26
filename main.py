@@ -193,6 +193,7 @@ def evaluate_model(model, dataloader, criterion, device):
     # Average across batches
     for key in metrics_total:
         metrics_total[key] /= num_batches
+    print(metrics_total)
 
     return metrics_total
 
