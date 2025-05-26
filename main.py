@@ -126,6 +126,18 @@ def train_model(model, loader, optimizer, criterion, device):
     model.train()
     total_loss = 0
     optimizer.zero_grad()
+
+    loss_log = {
+        'total': 0.0,
+        'heatmap_loss': 0.0,
+        'pose_loss': 0.0,
+        'mpjpe': 0.0,
+        'pa_mpjpe': 0.0,
+        'accel_error': 0.0
+    }
+
+    num_batches = 0
+
     for i, (video_frames, labels) in enumerate(loader):
         video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
         del video_frames
@@ -144,16 +156,23 @@ def train_model(model, loader, optimizer, criterion, device):
         gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4)
         heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
         output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
+
         loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
+
         loss['total'].backward()
         optimizer.step()
 
-        total_loss += loss['total'].detach().item()
+        for key in loss:
+            if isinstance(loss[key], torch.Tensor):
+                loss_log[key] += loss[key].detach().item()
+
+        num_batches += 1
+
         del loss, heatmaps_2d, output_3d
 
     # Print average loss for the epoch
-    avg_loss = total_loss / len(train_loader)
-    print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in epoch: {avg_loss:.4f}")
+    avg_loss =  {key: val / num_batches for key, val in loss_log.items()}
+    print(avg_loss)
 
     return avg_loss
 
