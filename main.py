@@ -157,31 +157,44 @@ def train_model(model, loader, optimizer, criterion, device):
     return avg_loss
 
 def evaluate_model(model, dataloader, criterion, device):
-    model.eval()  # Set model to evaluation mode
-    total_loss = 0.0
-    total_samples = 0
+    model.eval()
+    metrics_total = {
+        'mpjpe': 0.0,
+        'pa_mpjpe': 0.0,
+        'accel_error': 0.0
+        # 'loss': 0.0
+    }
+    num_batches = 0
 
     with torch.no_grad():
-        for i, (video_frames, labels)in enumerate(dataloader):
+        for i, (video_frames, labels) in enumerate(dataloader):
             video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
             del video_frames
             video_frames_rearranged = video_frames_rearranged.float().to(device)
+            labels = labels.float().to(device)
 
-            labels = labels.to(device)
+            # Optional: Generate 2D heatmaps from 3D labels
+            joints_2d = orthographic_projection(labels, (video_frames.shape[3], video_frames.shape[2]))  # [B, 14, 2]
+            gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(video_frames.shape[2], video_frames.shape[3]), sigma=4)
 
-            # Forward pass
-            predictions = model(video_frames_rearranged)
+            # Model forward
+            heatmaps_2d = model.part_regressor_2d(video_frames)
+            output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
 
-            # Compute loss
-            loss = criterion(predictions, labels)
-            total_loss += loss.item() * video_frames_rearranged.size(0)
-            total_samples += video_frames_rearranged.size(0)
+            # Compute loss and metrics
+            loss_dict = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
 
-            # (Optional) Compute additional metrics, e.g. MPJPE, RMSE, etc.
+            metrics_total['mpjpe'] += loss_dict['mpjpe'].item()
+            metrics_total['pa_mpjpe'] += loss_dict['pa_mpjpe'].item()
+            metrics_total['accel_error'] += loss_dict['accel_error'].item()
+            # metrics_total['loss'] += loss_dict['total'].item()
+            num_batches += 1
 
-    avg_loss = total_loss / total_samples
-    print(f"Evaluation: Average Loss: {avg_loss:.4f}")
-    return avg_loss
+    # Average across batches
+    for key in metrics_total:
+        metrics_total[key] /= num_batches
+
+    return metrics_total
 
 if __name__ == '__main__':
     model_selection = sys.argv[1]
@@ -220,9 +233,9 @@ if __name__ == '__main__':
             print("Normal model selected - In Default")
 
 
-    summary(model)
-    print(model)
-    #loss function - old
+    # summary(model)
+    # print(model)
+    # loss function - old
     # criterion = nn.MSELoss()
 
     # loss function - new
