@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import gc
 import sys
+import matplotlib.pyplot as plt
 
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 from torchinfo import summary
@@ -201,16 +202,30 @@ if __name__ == '__main__':
     model_selection = sys.argv[1]
     epoch_input = sys.argv[2]
     lr_input = sys.argv[3]
+
     # Set batch size
     batch_size = 8
     workers = os.cpu_count()
     learning_rate = float(lr_input)
     num_epochs = int(epoch_input)
-    accumulation_steps = 4
 
+    # Plotting stuff support
+    train_losses = []
+    eval_losses = []
+
+    train_mpjpe = []
+    eval_mpjpe = []
+
+    train_pa_mpjpe = []
+    eval_pa_mpjpe = []
+
+    train_accel_error = []
+    eval_accel_error = []
+
+    # Dataset creation and details stuff
     # create_dataset()
     # dataset_details('dataset_tensor_4.pt')
-    #
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     match model_selection:
@@ -233,9 +248,10 @@ if __name__ == '__main__':
             model = SelecSLSNet()
             print("Normal model selected - In Default")
 
-
+    # Model details
     # summary(model)
     # print(model)
+
     # loss function - old
     # criterion = nn.MSELoss()
 
@@ -244,7 +260,6 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     model.to(device)
-    # writer = SummaryWriter()
 
     for dataset_path in dataset_paths:
         # model.train()
@@ -253,10 +268,54 @@ if __name__ == '__main__':
         for epoch in range(num_epochs):
             # del test_loader
             avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
-            epoch_loss += avgerage_loss
-        val_loss = evaluate_model(model, test_loader, criterion, device)
+            val_loss = evaluate_model(model, test_loader, criterion, device)
 
+            # Training Related parameters
+            train_losses.append(avgerage_loss['total'].item())
+            train_mpjpe.append(avgerage_loss['mpjpe'].item())
+            train_pa_mpjpe.append(avgerage_loss['pa_mpjpe'].item())
+            train_accel_error.append(avgerage_loss['accel_error'].item())
+
+            # Evaluation Related Parameters
+            # eval_losses.append(val_loss['total'].item())
+            # eval_mpjpe.append(val_loss['mpjpe'].item())
+            # eval_pa_mpjpe.append(val_loss['pa_mpjpe'].item())
+            # eval_accel_error.append(val_loss['accel_error'].item())
+
+            epoch_loss += avgerage_loss
         del train_loader, test_loader
+
+    # Plotting functions
+    epochs = range(1, len(train_losses) + 1)
+
+    plt.figure(figsize=(12, 8))
+
+    plt.subplot(2, 2, 1)
+    plt.plot(epochs, train_losses, label='Train Total Loss')
+    # plt.plot(epochs, eval_losses, label='Eval Total Loss')
+    plt.title('Total Loss')
+    plt.legend()
+
+    plt.subplot(2, 2, 2)
+    plt.plot(epochs, train_mpjpe, label='Train MPJPE')
+    # plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
+    plt.title('MPJPE (mm)')
+    plt.legend()
+
+    plt.subplot(2, 2, 3)
+    plt.plot(epochs, train_pa_mpjpe, label='Train PA-MPJPE')
+    # plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
+    plt.title('PA-MPJPE (mm)')
+    plt.legend()
+
+    plt.subplot(2, 2, 4)
+    plt.plot(epochs, train_accel_error, label='Train Accel Error')
+    # plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
+    plt.title('Acceleration Error (mm/frame²)')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
 
         # Print average loss for the epoch
         # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in ds: {epoch_loss/len(dataset_paths):.4f}")
