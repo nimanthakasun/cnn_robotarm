@@ -181,8 +181,8 @@ def evaluate_model(model, dataloader, criterion, device):
     metrics_total = {
         'mpjpe': 0.0,
         'pa_mpjpe': 0.0,
-        'accel_error': 0.0
-        # 'loss': 0.0
+        'accel_error': 0.0,
+        'loss': 0.0
     }
     num_batches = 0
 
@@ -311,25 +311,25 @@ if __name__ == '__main__':
 
     plt.subplot(2, 2, 1)
     plt.plot(epochs, train_losses, label='Train Total Loss')
-    # plt.plot(epochs, eval_losses, label='Eval Total Loss')
+    plt.plot(epochs, eval_losses, label='Eval Total Loss')
     plt.title('Total Loss')
     plt.legend()
 
     plt.subplot(2, 2, 2)
     plt.plot(epochs, train_mpjpe, label='Train MPJPE')
-    # plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
+    plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
     plt.title('MPJPE (mm)')
     plt.legend()
 
     plt.subplot(2, 2, 3)
     plt.plot(epochs, train_pa_mpjpe, label='Train PA-MPJPE')
-    # plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
+    plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
     plt.title('PA-MPJPE (mm)')
     plt.legend()
 
     plt.subplot(2, 2, 4)
     plt.plot(epochs, train_accel_error, label='Train Accel Error')
-    # plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
+    plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
     plt.title('Acceleration Error (mm/frame²)')
     plt.legend()
 
