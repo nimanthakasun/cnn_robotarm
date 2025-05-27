@@ -11,6 +11,7 @@ import torch.optim as optim
 import gc
 import sys
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 from torchinfo import summary
@@ -249,13 +250,56 @@ def infer_model(h_device, saved_state_dict):
             inference_outputs.append(output_3d.cpu())
 
     # Combine all results
-    results_3d = torch.cat(inference_outputs, dim=0).numpy()
+    results_3d_out = torch.cat(inference_outputs, dim=0).numpy()
 
-    for t, joints in enumerate(results_3d):
+    display_3d_joint_demo(frames_for_infer,results_3d_out, 30)
+
+    for t, joints in enumerate(results_3d_out):
         print(f"Frame {t}:")
         for j in range(joints.shape[1]):
             x, y, z = joints[:, j]
-            print(f"  Joint {j}: X={x:.2f}, Y={y:.2f}, Z={z:.2f}")
+            print(f"  Reference Point {j}: X={x:.2f}, Y={y:.2f}, Z={z:.2f}")
+
+
+def display_3d_joint_demo(frames, results_3d, fps=10):
+    """
+    Display a side-by-side view of video frames and corresponding 3D joint coordinates.
+
+    Parameters:
+        frames (List[np.ndarray]): List of video frames (H, W, 3)
+        results_3d (List[torch.Tensor] or np.ndarray): Corresponding joint predictions (N, 3, 14)
+        fps (int): Frames per second for display
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    frame_disp = ax1.imshow(np.zeros_like(frames[0]))
+    text_box = ax2.text(0.01, 0.99, '', transform=ax2.transAxes,
+                        fontsize=12, verticalalignment='top', family='monospace')
+
+    ax1.axis('off')
+    ax1.set_title("Video Frame")
+    ax2.axis('off')
+    ax2.set_title("3D Joint Coordinates")
+
+    def update(idx):
+        frame = frames[idx]
+        joints = results_3d[idx]
+        if isinstance(joints, torch.Tensor):
+            joints = joints.cpu().detach().numpy()
+
+        frame_disp.set_data(frame)
+
+        text = "Joint Coordinates (X, Y, Z):\n\n"
+        for i in range(joints.shape[1]):
+            x, y, z = joints[:, i]
+            text += f"Joint {i:02d}: X={x:7.2f}, Y={y:7.2f}, Z={z:7.2f}\n"
+
+        text_box.set_text(text)
+        return frame_disp, text_box
+
+    ani = FuncAnimation(fig, update, frames=len(frames),
+                        interval=1000 / fps, blit=False)
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == '__main__':
     model_selection = sys.argv[1]
