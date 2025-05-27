@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+
 from preprocessor.DataSet import VideoDataset
 from torch.utils.data import DataLoader, TensorDataset, random_split
 # from torch.utils.tensorboard import SummaryWriter
@@ -14,7 +15,7 @@ import matplotlib.pyplot as plt
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 from torchinfo import summary
 from pyomeca import analogs, Markers
-from preprocessor import DataExtracter
+from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
@@ -217,10 +218,50 @@ def evaluate_model(model, dataloader, criterion, device):
 
     return metrics_total
 
+def infer_model(h_device, saved_state_dict):
+    print("Model in Inference mode")
+    model.load_state_dict(torch.load("mocap_model.pth", map_location=device))
+    model.to(device)
+    model.eval()
+
+    frm_extrct = FrameExtractor()
+    frames_for_infer, total_frames, frame_w, frame_he, frame_rate, frame_shape = frm_extrct.extract_frames("Output_1.avi")
+
+    inference_outputs = []
+    for i in range(0, len(frames_for_infer), batch_size):
+        batch_frames = frames_for_infer[i:i + batch_size]
+
+        # Preprocess frames
+        input_tensor = []
+        for frame in batch_frames:
+            # frame = cv2.resize(frame, (640, 480))  # Resize if needed
+            frame = frame.astype(np.float32) / 255.0  # Normalize to [0, 1]
+            frame = np.transpose(frame, (2, 0, 1))  # HWC → CHW
+            input_tensor.append(frame)
+
+        input_tensor = np.stack(input_tensor)  # Shape: [B, 3, H, W]
+        input_tensor = torch.tensor(input_tensor).float().to(device)
+
+        # Inference
+        with torch.no_grad():
+            heatmaps_2d = model.part_regressor_2d(input_tensor)
+            output_3d = model.selec_sls_3d(input_tensor, heatmaps_2d)  # [B, 3, 14]
+            inference_outputs.append(output_3d.cpu())
+
+    # Combine all results
+    results_3d = torch.cat(inference_outputs, dim=0).numpy()
+
+    for t, joints in enumerate(results_3d):
+        print(f"Frame {t}:")
+        for j in range(joints.shape[1]):
+            x, y, z = joints[:, j]
+            print(f"  Joint {j}: X={x:.2f}, Y={y:.2f}, Z={z:.2f}")
+
 if __name__ == '__main__':
     model_selection = sys.argv[1]
     epoch_input = sys.argv[2]
     lr_input = sys.argv[3]
+    train_mod = sys.argv[4]
 
     # Set batch size
     batch_size = 8
@@ -274,70 +315,73 @@ if __name__ == '__main__':
     # loss function - old
     # criterion = nn.MSELoss()
 
-    # loss function - new
-    criterion = poseMatrix.CombinedPoseLoss()
+    if train_mod == "train":
+        # loss function - new
+        criterion = poseMatrix.CombinedPoseLoss()
+        optimizer = optim.Adam(model.parameters(), lr = learning_rate)
+        model.to(device)
 
-    optimizer = optim.Adam(model.parameters(), lr = learning_rate)
-    model.to(device)
+        for dataset_path in dataset_paths:
+            # model.train()
+            epoch_loss = 0
+            train_loader, test_loader = prepare_dataset(dataset_path)
+            for epoch in range(num_epochs):
+                # del test_loader
+                avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
+                val_loss = evaluate_model(model, test_loader, criterion, device)
 
-    for dataset_path in dataset_paths:
-        # model.train()
-        epoch_loss = 0
-        train_loader, test_loader = prepare_dataset(dataset_path)
-        for epoch in range(num_epochs):
-            # del test_loader
-            avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
-            val_loss = evaluate_model(model, test_loader, criterion, device)
+                # Training Related parameters
+                train_losses.append(avgerage_loss['total'])
+                train_mpjpe.append(avgerage_loss['mpjpe'])
+                train_pa_mpjpe.append(avgerage_loss['pa_mpjpe'])
+                train_accel_error.append(avgerage_loss['accel_error'])
 
-            # Training Related parameters
-            train_losses.append(avgerage_loss['total'])
-            train_mpjpe.append(avgerage_loss['mpjpe'])
-            train_pa_mpjpe.append(avgerage_loss['pa_mpjpe'])
-            train_accel_error.append(avgerage_loss['accel_error'])
+                # Evaluation Related Parameters
+                eval_losses.append(val_loss['loss'])
+                eval_mpjpe.append(val_loss['mpjpe'])
+                eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
+                eval_accel_error.append(val_loss['accel_error'])
 
-            # Evaluation Related Parameters
-            eval_losses.append(val_loss['loss'])
-            eval_mpjpe.append(val_loss['mpjpe'])
-            eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
-            eval_accel_error.append(val_loss['accel_error'])
+                # epoch_loss += avgerage_loss
+            del train_loader, test_loader
 
-            # epoch_loss += avgerage_loss
-        del train_loader, test_loader
+        # Save model
+        torch.save(model.state_dict(), "mocap_model.pth")
 
-    # Save model
-    torch.save(model.state_dict(), "mocap_model.pth")
+        # Plotting functions
+        epochs = range(1, len(train_losses) + 1)
 
-    # Plotting functions
-    epochs = range(1, len(train_losses) + 1)
+        plt.figure(figsize=(12, 8))
 
-    plt.figure(figsize=(12, 8))
+        plt.subplot(2, 2, 1)
+        plt.plot(epochs, train_losses, label='Train Total Loss')
+        plt.plot(epochs, eval_losses, label='Eval Total Loss')
+        plt.title('Total Loss')
+        plt.legend()
 
-    plt.subplot(2, 2, 1)
-    plt.plot(epochs, train_losses, label='Train Total Loss')
-    plt.plot(epochs, eval_losses, label='Eval Total Loss')
-    plt.title('Total Loss')
-    plt.legend()
+        plt.subplot(2, 2, 2)
+        plt.plot(epochs, train_mpjpe, label='Train MPJPE')
+        plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
+        plt.title('MPJPE (mm)')
+        plt.legend()
 
-    plt.subplot(2, 2, 2)
-    plt.plot(epochs, train_mpjpe, label='Train MPJPE')
-    plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
-    plt.title('MPJPE (mm)')
-    plt.legend()
+        plt.subplot(2, 2, 3)
+        plt.plot(epochs, train_pa_mpjpe, label='Train PA-MPJPE')
+        plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
+        plt.title('PA-MPJPE (mm)')
+        plt.legend()
 
-    plt.subplot(2, 2, 3)
-    plt.plot(epochs, train_pa_mpjpe, label='Train PA-MPJPE')
-    plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
-    plt.title('PA-MPJPE (mm)')
-    plt.legend()
+        plt.subplot(2, 2, 4)
+        plt.plot(epochs, train_accel_error, label='Train Accel Error')
+        plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
+        plt.title('Acceleration Error (mm/frame²)')
+        plt.legend()
 
-    plt.subplot(2, 2, 4)
-    plt.plot(epochs, train_accel_error, label='Train Accel Error')
-    plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
-    plt.title('Acceleration Error (mm/frame²)')
-    plt.legend()
+        plt.tight_layout()
+        plt.show()
+    else:
+        infer_model(device,"mocap_model")
 
-    plt.tight_layout()
-    plt.show()
 
         # Print average loss for the epoch
         # print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss in ds: {epoch_loss/len(dataset_paths):.4f}")
