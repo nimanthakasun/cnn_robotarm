@@ -221,8 +221,8 @@ def evaluate_model(model, dataloader, criterion, device):
 
 def infer_model(h_device, saved_state_dict):
     print("Model in Inference mode")
-    model.load_state_dict(torch.load("mocap_model.pth", map_location=device))
-    model.to(device)
+    model.load_state_dict(torch.load(saved_state_dict, map_location=device))
+    model.to(h_device)
     model.eval()
 
     frm_extrct = FrameExtractor()
@@ -298,6 +298,7 @@ def display_3d_joint_demo(frames, results_3d, fps=10):
 
     ani = FuncAnimation(fig, update, frames=len(frames),
                         interval=1000 / fps, blit=False)
+    # HTML(anim.to_jshtml())
     plt.tight_layout()
     plt.show()
 
@@ -424,7 +425,7 @@ if __name__ == '__main__':
         plt.tight_layout()
         plt.show()
     else:
-        infer_model(device,"mocap_model")
+        infer_model(device,"mocap_model_2.pth")
 
 
         # Print average loss for the epoch
