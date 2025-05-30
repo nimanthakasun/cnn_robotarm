@@ -226,7 +226,7 @@ def infer_model(h_device, saved_state_dict):
     model.eval()
 
     frm_extrct = FrameExtractor()
-    frames_for_infer, total_frames, frame_w, frame_he, frame_rate, frame_shape = frm_extrct.extract_frames("Output_1.avi")
+    frames_for_infer, total_frames, frame_w, frame_he, frame_rate, frame_shape = frm_extrct.extract_frames("../Datasets/Output_1.avi")
 
     inference_outputs = []
     for i in range(0, len(frames_for_infer), batch_size):
@@ -424,8 +424,15 @@ if __name__ == '__main__':
 
         plt.tight_layout()
         plt.show()
+    elif train_mod == "datagen":
+        # Dataset creation and details stuff
+        print("Dataset creation mode")
+        # create_dataset()
+        # dataset_details('dataset_tensor_4.pt')
+    elif train_mod == "infer":
+        infer_model(device,"../Datasets/mocap_model_2.pth")
     else:
-        infer_model(device,"mocap_model_2.pth")
+        print("Wrong Execution Mode")
 
 
         # Print average loss for the epoch
