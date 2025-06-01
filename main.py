@@ -14,14 +14,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
-from torchinfo import summary
+# from torchinfo import summary
 from pyomeca import analogs, Markers
 from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
 # dataset_paths = ['dataset_tensor_1.pt', 'dataset_tensor_2.pt', 'dataset_tensor_3.pt']
-dataset_paths = ['dataset_tensor_4.pt', 'dataset_tensor_5.pt', 'dataset_tensor_6.pt']
+dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
@@ -331,8 +331,6 @@ if __name__ == '__main__':
     # create_dataset()
     # dataset_details('dataset_tensor_4.pt')
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     match model_selection:
         case "normal":
             model = SelecSLSNet()
@@ -353,9 +351,25 @@ if __name__ == '__main__':
             model = SelecSLSNet()
             print("Normal model selected - In Default")
 
-    # Model details
-    # summary(model)
-    # print(model)
+    if torch.cuda.is_available():
+        print("CUDA capabilities available:", torch.version.cuda)
+        device = "cuda"
+    else:
+        print("CUDA capabilities not available")
+        device = "cpu"
+
+    print(torch.version.cuda)
+    print(os.environ.get('CUDA_HOME'))
+    print(f'PyTorch version: {torch.__version__}')
+    print('*' * 10)
+    print(f'_CUDA version: ')
+    print('*' * 10)
+    print(f'CUDNN version: {torch.backends.cudnn.version()}')
+    print(f'Available GPU devices: {torch.cuda.device_count()}')
+    # print(f'Device Name: {torch.cuda.get_device_name()}')
+    print("Is CPU only", torch.__config__.show())
+
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # loss function - old
     # criterion = nn.MSELoss()
@@ -427,10 +441,14 @@ if __name__ == '__main__':
     elif train_mod == "datagen":
         # Dataset creation and details stuff
         print("Dataset creation mode")
-        # create_dataset()
-        # dataset_details('dataset_tensor_4.pt')
+        create_dataset()
+        dataset_details('dataset_tensor_4.pt')
     elif train_mod == "infer":
         infer_model(device,"../Datasets/mocap_model_2.pth")
+    elif train_mod == "summary":
+        # Model details
+        # summary(model)
+        print(model)
     else:
         print("Wrong Execution Mode")
 
