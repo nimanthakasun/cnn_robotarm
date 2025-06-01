@@ -1,4 +1,5 @@
 import cv2
+from rembg import remove
 
 def remove_background(scene_frame, background_frame):
     """
@@ -47,3 +48,5 @@ def create_invmask(source_frame, background_frame):
     #return cv2.bitwise_not(thresh)
     return thresh
 
+def remove_bckg_rembg(source):
+    return remove(source)
