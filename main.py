@@ -12,6 +12,7 @@ import gc
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import cv2
 
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 # from torchinfo import summary
@@ -20,8 +21,8 @@ from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
-# dataset_paths = ['dataset_tensor_1.pt', 'dataset_tensor_2.pt', 'dataset_tensor_3.pt']
-dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
+dataset_paths = ['dataset_tensor_7.pt', 'dataset_tensor_8.pt', 'dataset_tensor_9.pt']
+# dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
@@ -36,26 +37,29 @@ from Training import poseMatrix
 # ###############################################   Dataset creation   ###################################################
 def create_dataset():
     dataset_tensor = VideoDataset()
-    sample_frame,sample_label = dataset_tensor[0]
+    sample_frame,sample_label = dataset_tensor[55]
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    torch.save(dataset_tensor, "dataset_tensor_6.pt")
+    datasetname = "dataset_tensor_9.pt"
+    torch.save(dataset_tensor, datasetname)
     print(dataset_tensor.__len__())
+    dataset_details(datasetname)
 
 def dataset_details(path):
     loaded_dataset = torch.load(path)
     print("Length of frames set: ", len(loaded_dataset.video_frames))
     print("Length of labels set: ", len(loaded_dataset.labels))
 
-    sample_frame, sample_label = loaded_dataset[25]
+    sample_frame, sample_label = loaded_dataset[100]
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
 
     print("Video tensor shape: ", np.asarray(loaded_dataset.video_frames).shape)
     print("Label tensor shape: ", np.asarray(loaded_dataset.labels).shape)
 
-    print (sample_label)
+    print ("Sample Lable", sample_label)
+    print("Sample Lable", sample_frame)
 
 def prepare_dataset(dataset_path):
     loaded_dataset = torch.load(dataset_path)
@@ -141,9 +145,10 @@ def train_model(model, loader, optimizer, criterion, device):
     num_batches = 0
 
     for i, (video_frames, labels) in enumerate(loader):
-        video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
-        del video_frames
-        video_frames_rearranged = video_frames_rearranged.float().to(device)
+        # video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
+        # del video_frames
+        # video_frames_rearranged = video_frames_rearranged.float().to(device)
+        video_frames = video_frames.float().to(device)
         labels = labels.float().to(device)
 
         # Forward pass
@@ -156,8 +161,8 @@ def train_model(model, loader, optimizer, criterion, device):
         # New way
         joints_2d = orthographic_projection(labels, (480, 640))
         gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4)
-        heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
-        output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
+        heatmaps_2d = model.part_regressor_2d(video_frames)
+        output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
 
         loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
 
@@ -190,18 +195,18 @@ def evaluate_model(model, dataloader, criterion, device):
 
     with torch.no_grad():
         for i, (video_frames, labels) in enumerate(dataloader):
-            video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
-            del video_frames
-            video_frames_rearranged = video_frames_rearranged.float().to(device)
+            # video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
+            # del video_frames
+            video_frames = video_frames.float().to(device)
             labels = labels.float().to(device)
 
             # Optional: Generate 2D heatmaps from 3D labels
-            joints_2d = orthographic_projection(labels, (video_frames_rearranged.shape[3], video_frames_rearranged.shape[2]))  # [B, 14, 2]
-            gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(video_frames_rearranged.shape[2], video_frames_rearranged.shape[3]), sigma=4)
+            joints_2d = orthographic_projection(labels, (video_frames.shape[3], video_frames.shape[2]))  # [B, 14, 2]
+            gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(video_frames.shape[2], video_frames.shape[3]), sigma=4)
 
             # Model forward
-            heatmaps_2d = model.part_regressor_2d(video_frames_rearranged)
-            output_3d = model.selec_sls_3d(video_frames_rearranged, heatmaps_2d)
+            heatmaps_2d = model.part_regressor_2d(video_frames)
+            output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
 
             # Compute loss and metrics
             loss_dict = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
@@ -442,13 +447,14 @@ if __name__ == '__main__':
         # Dataset creation and details stuff
         print("Dataset creation mode")
         create_dataset()
-        dataset_details('dataset_tensor_4.pt')
     elif train_mod == "infer":
         infer_model(device,"../Datasets/mocap_model_2.pth")
     elif train_mod == "summary":
         # Model details
         # summary(model)
         print(model)
+        # dataset_details("../Datasets/dataset_tensor_4.pt")
+        dataset_details("dataset_tensor_6.pt")
     else:
         print("Wrong Execution Mode")
 
