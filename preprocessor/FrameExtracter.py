@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import Image
 
 class FrameExtractor():
     def extract_frames(self, video_path, num_frames=16):
@@ -35,7 +36,7 @@ class FrameExtractor():
             # Set the frame position to the current frame index
             cap.set(cv2.CAP_PROP_POS_FRAMES, i)
             # Read the frame
-            ret, frame = cap.read()
+            ret, frame_bgr = cap.read()
 
             # Break the loop if the end of the video is reached
             if not ret:
@@ -45,9 +46,10 @@ class FrameExtractor():
             '''
             frame = cv2.resize(frame, (112, 112))
             '''
-
+            frame_rgb = cv2.cvtColor(frame_bgr,cv2.COLOR_BGR2RGB)
+            frame_pil = Image.fromarray(frame_rgb)
             # Append the frame to the frames list
-            frames.append(frame)
+            frames.append(frame_pil)
 
         # Release the video capture object
         cap.release()

@@ -1,5 +1,6 @@
 import cv2
 from rembg import remove
+import numpy as np
 
 def remove_background(scene_frame, background_frame):
     """
@@ -49,4 +50,8 @@ def create_invmask(source_frame, background_frame):
     return thresh
 
 def remove_bckg_rembg(source):
-    return remove(source)
+    rgba_pil = remove(source)
+    rgba = np.array(rgba_pil)
+    rgb = rgba[:, :, :3]
+    del rgba, rgba_pil
+    return np.transpose(rgb, (2, 0, 1))
