@@ -21,7 +21,7 @@ from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
-dataset_paths = ['dataset_tensor_7.pt', 'dataset_tensor_8.pt', 'dataset_tensor_9.pt']
+dataset_paths = ['guestures_1_C1.pt','guestures_1_C2.pt','guestures_1_C3.pt','dataset_tensor_7.pt', 'dataset_tensor_8.pt', 'dataset_tensor_9.pt']
 # dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
 
 from stagetwo.selecslsMod import SelecSLSNet
@@ -41,7 +41,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    datasetname = "dataset_tensor_9.pt"
+    datasetname = "throwcatch_1_2_C2.pt"
     torch.save(dataset_tensor, datasetname)
     print(dataset_tensor.__len__())
     dataset_details(datasetname)
@@ -448,7 +448,7 @@ if __name__ == '__main__':
         print("Dataset creation mode")
         create_dataset()
     elif train_mod == "infer":
-        infer_model(device,"../Datasets/mocap_model_2.pth")
+        infer_model(device,"mocap_model.pth")
     elif train_mod == "summary":
         # Model details
         # summary(model)
