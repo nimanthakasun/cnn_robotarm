@@ -387,8 +387,16 @@ if __name__ == '__main__':
 
         for dataset_path in dataset_paths:
             # model.train()
+            try:
+                train_loader, test_loader = prepare_dataset(dataset_path)
+            except FileNotFoundError:
+                print(f"File not found: {dataset_path}. Skipping to next.")
+                continue  # Skip this dataset_path and move to the next
+            except Exception as e:
+                print(f"Error loading {dataset_path}: {e}. Skipping to next.")
+                continue  # Optionally catch all other exceptions
             epoch_loss = 0
-            train_loader, test_loader = prepare_dataset(dataset_path)
+            # train_loader, test_loader = prepare_dataset(dataset_path)
             for epoch in range(num_epochs):
                 # del test_loader
                 avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
