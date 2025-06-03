@@ -62,7 +62,7 @@ def dataset_details(path):
     print("Sample Lable", sample_frame)
 
 def prepare_dataset(dataset_path):
-    loaded_dataset = torch.load(dataset_path)
+    loaded_dataset = torch.load(dataset_path, map_location=torch.device('cpu'))
 
     if len(loaded_dataset.labels) > len(loaded_dataset.video_frames):
         loaded_dataset.labels = loaded_dataset.labels[:len(loaded_dataset.video_frames)]
