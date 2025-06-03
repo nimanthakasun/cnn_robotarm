@@ -41,7 +41,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    datasetname = "throwcatch_1_2_C2.pt"
+    datasetname = "throwcatch_1_2_C3.pt"
     torch.save(dataset_tensor, datasetname)
     print(dataset_tensor.__len__())
     dataset_details(datasetname)
@@ -389,6 +389,7 @@ if __name__ == '__main__':
             # model.train()
             try:
                 train_loader, test_loader = prepare_dataset(dataset_path)
+                print(f"Loaded: {dataset_path}")
             except FileNotFoundError:
                 print(f"File not found: {dataset_path}. Skipping to next.")
                 continue  # Skip this dataset_path and move to the next
