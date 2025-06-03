@@ -12,7 +12,8 @@ import gc
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import cv2
+# from torch.amp import autocast, GradScaler
+import json
 
 from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
 # from torchinfo import summary
@@ -21,8 +22,11 @@ from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
 # marker_location = ["LSHO"]
-dataset_paths = ['guestures_1_C1.pt','guestures_1_C2.pt','guestures_1_C3.pt','dataset_tensor_7.pt', 'dataset_tensor_8.pt', 'dataset_tensor_9.pt']
+dataset_paths = ['box_1_C1.pt', 'box_1_C2.pt', 'box_1_c3.pt',
+                 'guestures_1_C1.pt', 'guestures_1_C2.pt', 'guestures_1_C3.pt',
+                 'throwcatch_1_C1.pt', 'throwcatch_1_C2.pt', 'throwcatch_1_C3.pt']
 # dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
+loss_log_path = "loss_log.json"
 
 from stagetwo.selecslsMod import SelecSLSNet
 from stagetwo.selecslslight import LightweightSelecSLS
@@ -41,7 +45,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    datasetname = "throwcatch_1_2_C3.pt"
+    datasetname = "guestures_1_2_C3.pt"
     torch.save(dataset_tensor, datasetname)
     print(dataset_tensor.__len__())
     dataset_details(datasetname)
@@ -61,8 +65,8 @@ def dataset_details(path):
     print ("Sample Lable", sample_label)
     print("Sample Lable", sample_frame)
 
-def prepare_dataset(dataset_path):
-    loaded_dataset = torch.load(dataset_path)
+def prepare_dataset(arg_dataset_path, arg_batch_size, arg_workers):
+    loaded_dataset = torch.load(arg_dataset_path)
 
     if len(loaded_dataset.labels) > len(loaded_dataset.video_frames):
         loaded_dataset.labels = loaded_dataset.labels[:len(loaded_dataset.video_frames)]
@@ -78,14 +82,43 @@ def prepare_dataset(dataset_path):
     print(f"Test dataset size: {len(test_dataset)}")
 
     # Set batch size
-    batch_size = 8
-    workers = os.cpu_count()
+    # batch_size_in = 8
+    # workers = os.cpu_count()
 
     # Create DataLoaders for training and testing
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=workers)
+    train_loader = DataLoader(train_dataset, batch_size=arg_batch_size, shuffle=True, num_workers=arg_workers, pin_memory=True, persistent_workers=True)
+    test_loader = DataLoader(test_dataset, batch_size=arg_batch_size, shuffle=False, num_workers=arg_workers, pin_memory=True, persistent_workers=True)
 
     return train_loader, test_loader
+
+def append_losses( dataset_ref, epoch_in, train_loss_in, eval_loss_in,
+                   train_mpjpe_in, eval_mpjpe_in,
+                   train_pa_mpjpe_in, eval_pa_mpjpe_in,
+                   train_accel_error_in, eval_accel_error_in):
+    if os.path.exists(loss_log_path):
+        with open(loss_log_path, 'r') as f:
+            data = json.load(f)
+    else:
+        data = {'dataset_name':[],
+                'epochs': [],
+                'train_losses': [], 'eval_losses': [],
+                'train_mpjpe': [], 'eval_mpjpe': [],
+                'train_pa_mpjpe': [], 'eval_pa_mpjpe': [],
+                'train_accel_error': [], 'eval_accel_error': []}
+
+    data['dataset_name'].append(dataset_ref)
+    data['epochs'].append(epoch_in)
+    data['train_losses'].append(train_loss_in)
+    data['eval_losses'].append(eval_loss_in)
+    data['train_mpjpe'].append(train_mpjpe_in)
+    data['eval_mpjpe'].append(eval_mpjpe_in)
+    data['train_pa_mpjpe'].append(train_pa_mpjpe_in)
+    data['eval_pa_mpjpe'].append(eval_pa_mpjpe_in)
+    data['train_accel_error'].append(train_accel_error_in)
+    data['eval_accel_error'].append(eval_accel_error_in)
+
+    with open(loss_log_path, 'w') as f:
+        json.dump(data, f)
 
 def orthographic_projection(joints_3d, image_size=(640, 480)):
 
@@ -130,8 +163,9 @@ def generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4):
 def train_model(model, loader, optimizer, criterion, device):
 # Taining part
     model.train()
+    # scaler = GradScaler()
     total_loss = 0
-    optimizer.zero_grad()
+    # optimizer.zero_grad()
 
     loss_log = {
         'mpjpe': 0.0,
@@ -158,16 +192,26 @@ def train_model(model, loader, optimizer, criterion, device):
         # outputs = model(video_frames_rearranged)
         # loss = torch.sqrt(criterion(outputs, labels))
 
-        # New way
         joints_2d = orthographic_projection(labels, (480, 640))
         gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4)
+
+        # New way
         heatmaps_2d = model.part_regressor_2d(video_frames)
         output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
-
         loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
 
         loss['total'].backward()
         optimizer.step()
+
+        # Optimized way - High performance training optimized
+        # with autocast(device_type=device):
+        #     heatmaps_2d = model.part_regressor_2d(video_frames)
+        #     output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
+        #     loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
+        #
+        # scaler.scale(loss['total']).backward()
+        # scaler.step(optimizer)
+        # scaler.update()
 
         for key in loss:
             if isinstance(loss[key], torch.Tensor):
@@ -312,9 +356,10 @@ if __name__ == '__main__':
     epoch_input = sys.argv[2]
     lr_input = sys.argv[3]
     train_mod = sys.argv[4]
+    batch_size_arg = sys.argv[5]
 
     # Set batch size
-    batch_size = 8
+    batch_size = int(batch_size_arg)
     workers = os.cpu_count()
     learning_rate = float(lr_input)
     num_epochs = int(epoch_input)
@@ -388,7 +433,7 @@ if __name__ == '__main__':
         for dataset_path in dataset_paths:
             # model.train()
             try:
-                train_loader, test_loader = prepare_dataset(dataset_path)
+                train_loader, test_loader = prepare_dataset(dataset_path, batch_size, workers)
                 print(f"Loaded: {dataset_path}")
             except FileNotFoundError:
                 print(f"File not found: {dataset_path}. Skipping to next.")
@@ -415,6 +460,11 @@ if __name__ == '__main__':
                 eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
                 eval_accel_error.append(val_loss['accel_error'])
 
+                append_losses(f"{dataset_path}", epoch, avgerage_loss['total'], val_loss['loss'],
+                              avgerage_loss['mpjpe'], val_loss['mpjpe'],
+                              avgerage_loss['pa_mpjpe'], val_loss['pa_mpjpe'],
+                              avgerage_loss['accel_error'], val_loss['accel_error'])
+
                 # epoch_loss += avgerage_loss
             del train_loader, test_loader
             torch.save(model.state_dict(),f"mocap_model_{dataset_path}.pth")
@@ -423,35 +473,39 @@ if __name__ == '__main__':
         torch.save(model.state_dict(), "mocap_model.pth")
 
         # Plotting functions
-        epochs = range(1, len(train_losses) + 1)
+        with open('loss_log.json', 'r') as f:
+            data = json.load(f)
+        epochs_f = range(1, len(data['epochs'])+ 1)
+        # epochs = range(1, len(train_losses) + 1)
 
         plt.figure(figsize=(12, 8))
 
         plt.subplot(2, 2, 1)
-        plt.plot(epochs, train_losses, label='Train Total Loss')
-        plt.plot(epochs, eval_losses, label='Eval Total Loss')
+        plt.plot(epochs_f, data['train_losses'], label='Train Total Loss')
+        plt.plot(epochs_f, data['eval_losses'], label='Eval Total Loss')
         plt.title('Total Loss')
         plt.legend()
 
         plt.subplot(2, 2, 2)
-        plt.plot(epochs, train_mpjpe, label='Train MPJPE')
-        plt.plot(epochs, eval_mpjpe, label='Eval MPJPE')
+        plt.plot(epochs_f, data['train_mpjpe'], label='Train MPJPE')
+        plt.plot(epochs_f, data['eval_mpjpe'], label='Eval MPJPE')
         plt.title('MPJPE (mm)')
         plt.legend()
 
         plt.subplot(2, 2, 3)
-        plt.plot(epochs, train_pa_mpjpe, label='Train PA-MPJPE')
-        plt.plot(epochs, eval_pa_mpjpe, label='Eval PA-MPJPE')
+        plt.plot(epochs_f, data['train_pa_mpjpe'], label='Train PA-MPJPE')
+        plt.plot(epochs_f, data['eval_pa_mpjpe'], label='Eval PA-MPJPE')
         plt.title('PA-MPJPE (mm)')
         plt.legend()
 
         plt.subplot(2, 2, 4)
-        plt.plot(epochs, train_accel_error, label='Train Accel Error')
-        plt.plot(epochs, eval_accel_error, label='Eval Accel Error')
+        plt.plot(epochs_f, data['train_accel_error'], label='Train Accel Error')
+        plt.plot(epochs_f, data['eval_accel_error'], label='Eval Accel Error')
         plt.title('Acceleration Error (mm/frame²)')
         plt.legend()
 
         plt.tight_layout()
+        plt.savefig('loss_plot.png')
         plt.show()
     elif train_mod == "datagen":
         # Dataset creation and details stuff
