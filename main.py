@@ -62,7 +62,7 @@ def dataset_details(path):
     print("Sample Lable", sample_frame)
 
 def prepare_dataset(dataset_path):
-    loaded_dataset = torch.load(dataset_path, map_location=torch.device('cpu'))
+    loaded_dataset = torch.load(dataset_path)
 
     if len(loaded_dataset.labels) > len(loaded_dataset.video_frames):
         loaded_dataset.labels = loaded_dataset.labels[:len(loaded_dataset.video_frames)]
@@ -417,6 +417,7 @@ if __name__ == '__main__':
 
                 # epoch_loss += avgerage_loss
             del train_loader, test_loader
+            torch.save(model.state_dict(),f"mocap_model_{dataset_path}.pth")
 
         # Save model
         torch.save(model.state_dict(), "mocap_model.pth")
