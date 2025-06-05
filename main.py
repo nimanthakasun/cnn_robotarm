@@ -114,7 +114,7 @@ def append_losses( dataset_ref, epoch_in, train_loss_in, eval_loss_in,
     with open(loss_log_path, 'w') as f:
         json.dump(data, f)
 
-def update_ema(prev_ema, current_metrics, alpha=0.3):
+def update_ema(prev_ema, current_metrics, alpha=0.1):
     if prev_ema is None:
         # First time: initialize EMA with current values
         return current_metrics.copy()
