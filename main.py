@@ -9,6 +9,7 @@ import torch.optim as optim
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from torch.optim.lr_scheduler import LambdaLR
 import json
 
 from preprocessor.FrameExtracter import FrameExtractor
@@ -124,6 +125,14 @@ def update_ema(prev_ema, current_metrics, alpha=0.1):
         for key in current_metrics:
             updated_ema[key] = alpha * current_metrics[key] + (1 - alpha) * prev_ema[key]
         return updated_ema
+
+def get_warmup_scheduler(optimizer, num_warmup_epochs, total_epochs):
+    def lr_lambda(current_epoch):
+        if current_epoch < num_warmup_epochs:
+            return float(current_epoch + 1) / float(num_warmup_epochs)
+        else:
+            return 1.0  # constant LR after warmup (you can decay later if needed)
+    return LambdaLR(optimizer, lr_lambda)
 
 def orthographic_projection(joints_3d, image_size=(640, 480)):
 
@@ -414,6 +423,10 @@ if __name__ == '__main__':
         # loss function - new
         criterion = poseMatrix.CombinedPoseLoss()
         optimizer = optim.Adam(model.parameters(), lr = learning_rate, weight_decay=0.0001)
+        total_epochs = num_epochs
+        num_warmup_epochs = num_epochs // 10
+        scheduler = get_warmup_scheduler(optimizer, num_warmup_epochs, total_epochs)
+
         model.to(device)
         ema_metrics = None
         for dataset_path in dataset_paths:
@@ -452,7 +465,7 @@ if __name__ == '__main__':
                               avgerage_loss['pa_mpjpe'], ema_metrics['pa_mpjpe'],
                               avgerage_loss['accel_error'], ema_metrics['accel_error'])
 
-                # epoch_loss += avgerage_loss
+                scheduler.step()
             del train_loader, test_loader
             torch.save(model.state_dict(),f"mocap_model_{dataset_path}.pth")
 
