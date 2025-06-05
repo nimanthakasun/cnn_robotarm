@@ -18,7 +18,9 @@ from preprocessor.FrameExtracter import FrameExtractor
 # marker_location = ["LSHO"]
 dataset_paths = ['box_1_C1.pt', 'box_1_C2.pt', 'box_1_c3.pt',
                  'guestures_1_C1.pt', 'guestures_1_C2.pt', 'guestures_1_C3.pt',
-                 'throwcatch_1_C1.pt', 'throwcatch_1_C2.pt', 'throwcatch_1_C3.pt']
+                 'throwcatch_1_C1.pt', 'throwcatch_1_C2.pt', 'throwcatch_1_C3.pt',
+                 'guestures_1_2_C1.pt', 'guestures_1_2_C2.pt', 'guestures_1_2_C3.pt',
+                 'throwcatch_1_2_C1.pt', 'throwcatch_1_2_C2.pt', 'throwcatch_1_2_C3.pt']
 
 loss_log_path = "loss_log.json"
 
