@@ -3,21 +3,15 @@ import json
 import torch
 
 from preprocessor.DataSet import VideoDataset
-from torch.utils.data import DataLoader, TensorDataset, random_split
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader, random_split, Subset
 import numpy as np
-import torch.nn as nn
 import torch.optim as optim
-import gc
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-# from torch.amp import autocast, GradScaler
+from sklearn.model_selection import KFold
 import json
 
-from stagetwo import selecsls, selecslsMod, selecslslight, combineModel
-# from torchinfo import summary
-from pyomeca import analogs, Markers
 from preprocessor.FrameExtracter import FrameExtractor
 
 # marker_locations = ["LSHO","LUPA","LELB","LWRA","LWRB","LFRA","LFIN","RSHO","RUPA","RELB","RWRA","RWRB","RFRA","RFIN"]
@@ -25,7 +19,7 @@ from preprocessor.FrameExtracter import FrameExtractor
 dataset_paths = ['box_1_C1.pt', 'box_1_C2.pt', 'box_1_c3.pt',
                  'guestures_1_C1.pt', 'guestures_1_C2.pt', 'guestures_1_C3.pt',
                  'throwcatch_1_C1.pt', 'throwcatch_1_C2.pt', 'throwcatch_1_C3.pt']
-# dataset_paths = ['../Datasets/dataset_tensor_4.pt', '../Datasets/dataset_tensor_5.pt', '../Datasets/dataset_tensor_6.pt']
+
 loss_log_path = "loss_log.json"
 
 from stagetwo.selecslsMod import SelecSLSNet
@@ -34,8 +28,7 @@ from stagetwo.combineModel import MotionCapturePipeline
 from stagetwo.advanced import MotionCapturePipelineAdvanced
 from stagetwo.enhancedAdv import MotionCaptureSystem
 
-from Training import advanceTrainingScheme
-from Training import lossCriterions
+
 from Training import poseMatrix
 
 # ###############################################   Dataset creation   ###################################################
@@ -45,7 +38,7 @@ def create_dataset():
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    datasetname = "guestures_1_2_C3.pt"
+    datasetname = "n_guestures_1_2_C3.pt"
     torch.save(dataset_tensor, datasetname)
     print(dataset_tensor.__len__())
     dataset_details(datasetname)
@@ -74,7 +67,7 @@ def prepare_dataset(arg_dataset_path, arg_batch_size, arg_workers):
 
     print(loaded_dataset)
 
-    train_size = int(0.8 * len(loaded_dataset))
+    train_size = int(0.75 * len(loaded_dataset))
     test_size = len(loaded_dataset) - train_size
 
     train_dataset, test_dataset = random_split(loaded_dataset, [train_size, test_size])
@@ -120,6 +113,17 @@ def append_losses( dataset_ref, epoch_in, train_loss_in, eval_loss_in,
     with open(loss_log_path, 'w') as f:
         json.dump(data, f)
 
+def update_ema(prev_ema, current_metrics, alpha=0.3):
+    if prev_ema is None:
+        # First time: initialize EMA with current values
+        return current_metrics.copy()
+    else:
+        # Update EMA for each key
+        updated_ema = {}
+        for key in current_metrics:
+            updated_ema[key] = alpha * current_metrics[key] + (1 - alpha) * prev_ema[key]
+        return updated_ema
+
 def orthographic_projection(joints_3d, image_size=(640, 480)):
 
     B, _, J = joints_3d.shape
@@ -163,9 +167,6 @@ def generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4):
 def train_model(model, loader, optimizer, criterion, device):
 # Taining part
     model.train()
-    # scaler = GradScaler()
-    total_loss = 0
-    # optimizer.zero_grad()
 
     loss_log = {
         'mpjpe': 0.0,
@@ -179,18 +180,12 @@ def train_model(model, loader, optimizer, criterion, device):
     num_batches = 0
 
     for i, (video_frames, labels) in enumerate(loader):
-        # video_frames_rearranged = video_frames.permute(0, 3, 1, 2)
-        # del video_frames
-        # video_frames_rearranged = video_frames_rearranged.float().to(device)
+
         video_frames = video_frames.float().to(device)
         labels = labels.float().to(device)
 
         # Forward pass
         optimizer.zero_grad()
-
-        # Old way
-        # outputs = model(video_frames_rearranged)
-        # loss = torch.sqrt(criterion(outputs, labels))
 
         joints_2d = orthographic_projection(labels, (480, 640))
         gt_heatmaps_2d = generate_heatmaps_2d(joints_2d, heatmap_size=(480, 640), sigma=4)
@@ -202,16 +197,6 @@ def train_model(model, loader, optimizer, criterion, device):
 
         loss['total'].backward()
         optimizer.step()
-
-        # Optimized way - High performance training optimized
-        # with autocast(device_type=device):
-        #     heatmaps_2d = model.part_regressor_2d(video_frames)
-        #     output_3d = model.selec_sls_3d(video_frames, heatmaps_2d)
-        #     loss = criterion(heatmaps_2d, output_3d, gt_heatmaps_2d, labels)
-        #
-        # scaler.scale(loss['total']).backward()
-        # scaler.step(optimizer)
-        # scaler.update()
 
         for key in loss:
             if isinstance(loss[key], torch.Tensor):
@@ -264,8 +249,8 @@ def evaluate_model(model, dataloader, criterion, device):
     # Average across batches
     for key in metrics_total:
         metrics_total[key] /= num_batches
-    print(metrics_total)
 
+    print(metrics_total)
     return metrics_total
 
 def infer_model(h_device, saved_state_dict):
@@ -275,7 +260,7 @@ def infer_model(h_device, saved_state_dict):
     model.eval()
 
     frm_extrct = FrameExtractor()
-    frames_for_infer, total_frames, frame_w, frame_he, frame_rate, frame_shape = frm_extrct.extract_frames("../Datasets/Output_1.avi")
+    frames_for_infer, total_frames, frame_w, frame_he, frame_rate, frame_shape = frm_extrct.extract_frames("../Datasets/output_7.avi")
 
     inference_outputs = []
     for i in range(0, len(frames_for_infer), batch_size):
@@ -427,9 +412,9 @@ if __name__ == '__main__':
     if train_mod == "train":
         # loss function - new
         criterion = poseMatrix.CombinedPoseLoss()
-        optimizer = optim.Adam(model.parameters(), lr = learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr = learning_rate, weight_decay=0.0001)
         model.to(device)
-
+        ema_metrics = None
         for dataset_path in dataset_paths:
             # model.train()
             try:
@@ -447,6 +432,7 @@ if __name__ == '__main__':
                 # del test_loader
                 avgerage_loss = train_model(model, train_loader, optimizer, criterion, device)
                 val_loss = evaluate_model(model, test_loader, criterion, device)
+                ema_metrics = update_ema(ema_metrics, val_loss, alpha=0.5)
 
                 # Training Related parameters
                 train_losses.append(avgerage_loss['total'])
@@ -455,15 +441,15 @@ if __name__ == '__main__':
                 train_accel_error.append(avgerage_loss['accel_error'])
 
                 # Evaluation Related Parameters
-                eval_losses.append(val_loss['loss'])
-                eval_mpjpe.append(val_loss['mpjpe'])
-                eval_pa_mpjpe.append(val_loss['pa_mpjpe'])
-                eval_accel_error.append(val_loss['accel_error'])
+                eval_losses.append(ema_metrics['loss'])
+                eval_mpjpe.append(ema_metrics['mpjpe'])
+                eval_pa_mpjpe.append(ema_metrics['pa_mpjpe'])
+                eval_accel_error.append(ema_metrics['accel_error'])
 
-                append_losses(f"{dataset_path}", epoch, avgerage_loss['total'], val_loss['loss'],
-                              avgerage_loss['mpjpe'], val_loss['mpjpe'],
-                              avgerage_loss['pa_mpjpe'], val_loss['pa_mpjpe'],
-                              avgerage_loss['accel_error'], val_loss['accel_error'])
+                append_losses(f"{dataset_path}", epoch, avgerage_loss['total'], ema_metrics['loss'],
+                              avgerage_loss['mpjpe'], ema_metrics['mpjpe'],
+                              avgerage_loss['pa_mpjpe'], ema_metrics['pa_mpjpe'],
+                              avgerage_loss['accel_error'], ema_metrics['accel_error'])
 
                 # epoch_loss += avgerage_loss
             del train_loader, test_loader
@@ -512,7 +498,7 @@ if __name__ == '__main__':
         print("Dataset creation mode")
         create_dataset()
     elif train_mod == "infer":
-        infer_model(device,"mocap_model.pth")
+        infer_model(device,"../Datasets/4L100E9D.pth")
     elif train_mod == "summary":
         # Model details
         # summary(model)
