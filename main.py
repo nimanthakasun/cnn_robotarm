@@ -9,7 +9,6 @@ import torch.optim as optim
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from sklearn.model_selection import KFold
 import json
 
 from preprocessor.FrameExtracter import FrameExtractor
