@@ -14,22 +14,6 @@ class VideoDataset(Dataset):
         extracted_frames, c3d_samples = self.load_dataset()
         self.video_frames = extracted_frames
         self.labels = c3d_samples
-# # Normalize Images
-#         image_tensors = []
-#         for img in self.video_frames:
-#             img_tensor = transforms.ToTensor()(img)
-#             image_tensors.append(img_tensor)
-#
-#         image_tensors = torch.stack(image_tensors)
-#         self.image_mean = image_tensors.mean(dim=(0, 1, 2), keepdim=True)
-#         self.image_std = image_tensors.std(dim=(0, 1, 2))
-#
-# # Normalize Labels
-#         labels_array = np.array(self.labels)
-#         self.label_min = np.min(labels_array, axis=(0, 2), keepdims=True)
-#         self.label_max = np.max(labels_array, axis=(0, 2), keepdims=True)
-
-#Normalize labels
 
     def __len__(self):
         return  len(self.video_frames)
@@ -37,34 +21,24 @@ class VideoDataset(Dataset):
     def __getitem__(self, idx):
         frame = self.video_frames[idx]
         label = self.labels[idx]
-
-        # image_tensor = transforms.ToTensor()(frame)
-        # image_tensor = (image_tensor - self.image_mean) / self.image_std
-        #
-        # label_array = np.array(label)
-        # label_normalized = (label_array - self.label_min) / (self.label_max - self.label_min)
-        # label_tensor = torch.from_numpy(label_normalized).float()
-        #
-        # return  image_tensor, label_tensor # torch.tensor(frame,dtype=torch.float32),
-
         return torch.tensor(frame,dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
     def get_paths(self):
-        folder_path = '../Datasets/HumanEva/S1/Image_Data'
+        folder_path = '../Datasets/HumanEva/S2/Image_Data'
         bckg_folder_path = '../Datasets/HumanEva/Background'
-        mocap_folder_path = '../Datasets/HumanEva/S1/Mocap_Data'
+        mocap_folder_path = '../Datasets/HumanEva/S2/Mocap_Data'
         cur_path = os.getcwd()
 
         if COLOR:
             # Color Video
-            video_path = os.path.join(folder_path, 'Box_1_(C1).avi')
+            video_path = os.path.join(folder_path, 'Gestures_1_(C3).avi')
             bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(C1).avi')
         else:
             # BW video
             video_path = os.path.join(folder_path, 'Box_1_(BW2).avi')
             bckg_video_path = os.path.join(bckg_folder_path, 'Background_1_(BW1).avi')
 
-        mocap_c3d_path = os.path.join(mocap_folder_path, 'Box_1.c3d')
+        mocap_c3d_path = os.path.join(mocap_folder_path, 'Gestures_1.c3d')
         return video_path, bckg_video_path, mocap_c3d_path
 
     def load_from_image_source(self, video_path, bckg_video_path, rembgstat = False):
@@ -102,10 +76,6 @@ class VideoDataset(Dataset):
             marker_array.append(DataExtracter.get_marker_array(c3d_file, i, ratio))
 
         return marker_array
-        # full_marker_array =  DataExtracter.get_marker_array(c3d_file, source_frame_count)
-        # shape_of_full_array = full_marker_array.shape
-        # mocap_length = shape_of_full_array[2]
-        # return self.downsample_mocap(source_frame_count,mocap_length,full_marker_array)
 
     def load_dataset(self):
         video_path, bckg_video_path, mocap_path = self.get_paths()
@@ -113,23 +83,3 @@ class VideoDataset(Dataset):
         srcframecount, image_numpy_array = self.load_from_image_source(video_path, bckg_video_path, True)
         mocap_numpy_array = self.load_from_mocap_source(mocap_path, srcframecount)
         return image_numpy_array, mocap_numpy_array
-
-    # def downsample_mocap(self, frame_count, mocap_sample_count, mocap_array):
-    #     ratio = mocap_sample_count//frame_count
-    #     # return mocap_array[:,:,::int(ratio)]
-    #     averaged_mocap = []
-    #     # for i in range(frame_count):
-    #     #     start = i * ratio
-    #     #     end = start + ratio
-    #     #     averaged_sample = np.mean(mocap_array[start:end], axis=0)  # Average over the range
-    #     #     averaged_mocap.append(averaged_sample)
-    #     #
-    #     # return np.array(averaged_mocap).transpose(2, 0, 1)
-    #
-    #     for i in range(frame_count):
-    #         start = i * ratio
-    #         end = start + ratio
-    #         averaged_sample = np.mean(mocap_array[start:end], axis=0)  # Average over the range
-    #         averaged_mocap.append(averaged_sample)
-    #
-    #     start = i * ratio
