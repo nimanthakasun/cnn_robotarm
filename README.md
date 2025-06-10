@@ -1,5 +1,14 @@
 # SelecSLS based Motion Capture System for Human Machine Interaction
 ## Background
+This project implements a markerless motion capture system using Convolutional Neural Networks (CNNs) to estimate 3D human poses from video input—no special suits, sensors or markers required.
+The system is designed for efficient, real-time pose estimation using deep learning, with applications in robotics, biomechanics, and more.
+
+### 🔍 Key Features:
+- 2D-to-3D pose estimation pipeline
+- CNN-based architecture for spatial feature extraction
+
+### 📌 Currently trained on [HumaEva](http://humaneva.is.tue.mpg.de/)
+
 ## Building and Run the Codebase
 ### Prerequisites
 1. PyCharm IDE
