@@ -7,7 +7,7 @@ The system is designed for efficient, real-time pose estimation using deep learn
 - 2D-to-3D pose estimation pipeline
 - CNN-based architecture for spatial feature extraction
 
-### 📌 Currently trained on [HumaEva](http://humaneva.is.tue.mpg.de/)
+### 📌 Currently trained on [HumanEva](http://humaneva.is.tue.mpg.de/)
 
 ## Building and Run the Codebase
 ### Prerequisites
