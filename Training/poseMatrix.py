@@ -81,3 +81,12 @@ class CombinedPoseLoss(nn.Module):
         losses['total'] = total
         return losses
 
+class FirstStageLoss(nn.Module):
+    def __init__(self, heatmap_weight=1.0):
+        super().__init__()
+        self.heatmap_loss = nn.MSELoss()
+        self.heatmap_weight = heatmap_weight
+
+    def forward(self,pred_2d, target_2d):
+        return self.heatmap_loss(pred_2d, target_2d)
+

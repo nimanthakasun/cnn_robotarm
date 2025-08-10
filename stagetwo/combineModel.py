@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from xarray.util.generate_ops import inplace
-
 
 class PartRegressor2D(nn.Module):
     def __init__(self, num_joints=14):
@@ -52,12 +50,6 @@ class SelecSLSMod(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True)
         )
-
-        # self.conv5 = nn.Sequential(
-        #     nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-        #     nn.BatchNorm2d(64),
-        #     nn.ReLU(inplace=True)
-        # )
 
         # Combine selected features with 1x1 conv (like SelecSLS)
         self.conv_combine = nn.Conv2d(32 + 64 + 64 + 128, 128, kernel_size=1)

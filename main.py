@@ -3,6 +3,7 @@ import json
 import torch
 
 from preprocessor.DataSet import VideoDataset
+from preprocessor.HeatMapDataset import HeatMapDataset
 from torch.utils.data import DataLoader, random_split, Subset
 import numpy as np
 import torch.optim as optim
@@ -10,6 +11,7 @@ import sys
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from torch.optim.lr_scheduler import LambdaLR
+from torchinfo import summary
 import json
 
 from preprocessor.FrameExtracter import FrameExtractor
@@ -35,15 +37,27 @@ from Training import poseMatrix
 
 # ###############################################   Dataset creation   ###################################################
 def create_dataset():
-    dataset_tensor = VideoDataset()
-    sample_frame,sample_label = dataset_tensor[55]
+    # print("Creating Video Dataset:...")
+    # dataset_tensor = VideoDataset()
+    # sample_frame,sample_label = dataset_tensor[55]
+    # print("Video shape: ", sample_frame.shape)
+    # print("Label shape: ", sample_label.shape)
+    # print("Saving Dataset:")
+    # datasetname = "n_guestures_1_2_C1.pt"
+    # torch.save(dataset_tensor, datasetname)
+    # print(dataset_tensor.__len__())
+    # dataset_details(datasetname)
+
+    print("Creating Heatmap Dataset:...")
+    heatmapdataset = HeatMapDataset()
+    sample_frame, sample_label = heatmapdataset[55]
     print("Video shape: ", sample_frame.shape)
     print("Label shape: ", sample_label.shape)
     print("Saving Dataset:")
-    datasetname = "n_guestures_1_2_C3.pt"
-    torch.save(dataset_tensor, datasetname)
-    print(dataset_tensor.__len__())
-    dataset_details(datasetname)
+    datasetname = "hm_guestures_1_2_C1.pt"
+    torch.save(heatmapdataset, datasetname)
+    print(heatmapdataset.__len__())
+    # dataset_details(datasetname)
 
 def dataset_details(path):
     loaded_dataset = torch.load(path)
@@ -432,7 +446,7 @@ if __name__ == '__main__':
         for dataset_path in dataset_paths:
             # model.train()
             try:
-                train_loader, test_loader = prepare_dataset(dataset_path, batch_size, workers)
+                train_loader, test_loader = prepare_dataset("../Datasets/"+dataset_path, batch_size, workers)
                 print(f"Loaded: {dataset_path}")
             except FileNotFoundError:
                 print(f"File not found: {dataset_path}. Skipping to next.")
@@ -473,7 +487,7 @@ if __name__ == '__main__':
         torch.save(model.state_dict(), "mocap_model.pth")
 
         # Plotting functions
-        with open('loss_log.json', 'r') as f:
+        with open('../Datasets/loss_log.json', 'r') as f:
             data = json.load(f)
         epochs_f = range(1, len(data['epochs'])+ 1)
         # epochs = range(1, len(train_losses) + 1)
@@ -512,11 +526,11 @@ if __name__ == '__main__':
         print("Dataset creation mode")
         create_dataset()
     elif train_mod == "infer":
-        infer_model(device,"../Datasets/4L100E9D.pth")
+        infer_model(device,"../Datasets/5L100E9D.pth")
     elif train_mod == "summary":
         # Model details
-        # summary(model)
-        print(model)
+        summary(model,(1,3,480,640))
+        # print(model)
         # dataset_details("../Datasets/dataset_tensor_4.pt")
         dataset_details("dataset_tensor_6.pt")
     else:
